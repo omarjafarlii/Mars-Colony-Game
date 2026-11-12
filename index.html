@@ -1,0 +1,1640 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BUTTERFLY: MARS — Koloniya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.80.1/phaser.min.js"></script>
+<style>
+:root{--bg:#160d08;--panel:rgba(36,21,13,.92);--panel2:#2f1b11;--line:#55331f;--line2:#7a4a2c;--sand:#efdcb8;--sand2:#c9ad86;--dim:#94785a;
+ --ochre:#e8902f;--ochre2:#f6ad52;--air:#9cd0f0;--water:#4fc2b4;--food:#8fc85a;--energy:#f0b84a;--red:#ea5a42;--yel:#e8c450;--grn:#8fd068;
+ --px:'Pixelify Sans',monospace;--sans:'Inter',system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--sand);font-family:var(--sans);font-size:14px;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+[hidden]{display:none!important}
+.px{font-family:var(--px)}
+#app{position:relative;width:100vw;height:100vh;overflow:hidden}
+#phaser{position:absolute;inset:0}
+#phaser canvas{image-rendering:pixelated}
+/* HUD */
+#hud{position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between;padding:8px 12px;background:linear-gradient(rgba(22,13,8,.92),rgba(22,13,8,.55));z-index:5;pointer-events:none}
+#hud>*{pointer-events:auto}
+.brand{font-family:var(--px);font-weight:700;font-size:18px;letter-spacing:.06em}
+.brand b{color:var(--ochre)}
+.tele{display:flex;gap:6px;flex-wrap:wrap}
+.tele div{background:rgba(30,18,11,.9);border:1px solid var(--line);padding:2px 8px;min-width:64px}
+.tele label{display:block;font-size:9px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.tele b{font-family:var(--px);font-size:16px;font-weight:600;white-space:nowrap}
+.tele .storm b{color:var(--ochre2)}
+.speed{display:flex;gap:4px}
+.speed button{background:rgba(30,18,11,.9);border:1px solid var(--line2);padding:4px 9px;font-family:var(--px);font-size:14px}
+.speed button.on{border-color:var(--ochre);color:var(--ochre2);background:#3a2214}
+/* goals panel */
+#goals{position:absolute;left:10px;top:64px;width:250px;z-index:4;display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 80px);overflow:auto}
+.gcard{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c);padding:7px 9px}
+.gcard h4{margin:0;font-family:var(--px);font-size:15px;letter-spacing:.08em;color:var(--c);display:flex;justify-content:space-between;align-items:center}
+.gcard h4 i{width:9px;height:9px;border-radius:50%;background:var(--st);box-shadow:0 0 6px var(--st)}
+.gval{font-family:var(--px);font-size:17px;margin-top:2px}
+.gsub{font-size:11px;color:var(--sand2);display:flex;justify-content:space-between;gap:6px}
+.gsub .neg{color:var(--red)}.gsub .pos{color:var(--grn)}
+.gbar{height:4px;background:#1a0f09;margin-top:4px}.gbar i{display:block;height:100%;background:var(--c)}
+.mini{background:var(--panel);border:1px solid var(--line);padding:7px 9px;font-size:11.5px;display:grid;grid-template-columns:1fr auto;gap:2px 8px}
+.mini b{font-weight:600;font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+.mini .w{color:var(--red)}
+/* quest log */
+#qlog{position:absolute;right:10px;top:64px;width:250px;z-index:4;background:var(--panel);border:1px solid var(--line);padding:8px 10px;max-height:calc(100vh - 220px);overflow:auto;font-size:12px}
+#qlog h3{margin:0 0 6px;font-family:var(--px);font-size:14px;letter-spacing:.1em;color:var(--dim);display:flex;justify-content:space-between}
+#qlog h3 button{background:none;border:0;color:var(--dim);font-size:12px}
+.qg{margin-bottom:8px}.qg h5{margin:0 0 3px;font-family:var(--px);font-size:13px;color:var(--c);letter-spacing:.08em}
+.qi{display:grid;grid-template-columns:16px 1fr;gap:4px;padding:2px 0;color:var(--sand2)}
+.qi.ok span:first-child{color:var(--grn)}.qi.bad span:first-child{color:var(--red)}.qi.wait{color:var(--dim)}
+#qlog.collapsed .qbody{display:none}
+#follow{position:absolute;right:10px;bottom:10px;z-index:4;background:var(--panel);border:1px solid var(--line2);padding:6px 10px;font-family:var(--px)}
+/* banner */
+#banner{position:absolute;left:0;right:0;top:34%;z-index:20;text-align:center;pointer-events:none}
+#banner .bx{display:inline-block;background:rgba(20,11,7,.94);border-top:3px solid var(--c);border-bottom:3px solid var(--c);padding:10px 40px;animation:bn 1.7s ease both}
+#banner small{display:block;font-family:var(--px);letter-spacing:.3em;color:var(--c);font-size:14px}
+#banner b{font-family:var(--px);font-size:clamp(24px,5vw,40px);font-weight:700}
+@keyframes bn{0%{opacity:0;transform:scaleX(.2)}15%{opacity:1;transform:scaleX(1)}85%{opacity:1}100%{opacity:0}}
+/* dialog */
+#dialog{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:min(760px,calc(100vw - 20px));z-index:15;background:rgba(20,11,7,.96);border:2px solid var(--line2);display:flex;gap:12px;padding:10px;cursor:pointer}
+#dialog img{width:72px;height:72px;image-rendering:pixelated;border:2px solid var(--line2);background:#2a160d;flex:none}
+#dialog .who{font-family:var(--px);color:var(--ochre2);font-size:16px}
+#dialog .who small{color:var(--dim);font-size:12px;margin-left:6px}
+#dialog .say{font-size:15px;line-height:1.45;min-height:44px}
+#dialog .hint{font-size:10.5px;color:var(--dim);text-align:right;font-family:var(--px)}
+/* cards */
+.modal{position:absolute;inset:0;z-index:18;background:rgba(10,6,4,.55);display:flex;align-items:flex-end;justify-content:center;padding:10px 10px 12px;overflow:auto}
+.cardsbox{width:min(1100px,100%);background:rgba(24,14,9,.97);border:2px solid var(--line2);padding:12px}
+.cardsbox .kick{font-family:var(--px);letter-spacing:.2em;font-size:12px;color:var(--c)}
+.cardsbox h2{margin:2px 0 4px;font-family:var(--px);font-size:24px}
+.cardsbox .cause{border-left:3px solid var(--red);background:#2e130c;padding:6px 10px;font-size:13px;margin:6px 0 8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px}
+.card{text-align:left;background:var(--panel2);border:2px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:5px;transition:transform .1s,border-color .1s}
+.card:hover:not(:disabled){border-color:var(--ochre);transform:translateY(-2px)}
+.card:disabled{opacity:.4;cursor:not-allowed}
+.card.pick{border-color:var(--ochre);box-shadow:0 0 0 2px var(--ochre)}
+.card .t{font-family:var(--px);font-size:17px;font-weight:600;line-height:1.15}
+.card .row{display:flex;justify-content:space-between;gap:6px;font-size:12px}
+.card .cost{font-family:var(--px);color:var(--ochre2);font-size:15px}
+.card .en{color:var(--energy);font-size:12px}
+.card .vis{font-size:12.5px;color:var(--sand2)}
+.eco{font-size:10.5px;padding:1px 6px;border:1px solid;font-family:var(--px);white-space:nowrap}
+.eco.yaşıl{color:var(--grn)}.eco.sarı{color:var(--yel)}.eco.qırmızı{color:var(--red)}
+.card .why{font-size:11px;color:var(--red)}
+/* note */
+#note .cardsbox{max-width:560px;border-color:var(--water)}
+.note-src{font-size:11px;color:var(--dim);margin-top:6px}
+.btn{background:var(--ochre);color:#1d0f06;border:0;padding:10px 16px;font-family:var(--px);font-size:17px;font-weight:600}
+.btn:hover{background:var(--ochre2)}.btn.ghost{background:transparent;color:var(--sand);border:2px solid var(--line2)}
+.btn:disabled{opacity:.5}
+/* title & end overlays */
+.ov{position:absolute;inset:0;z-index:30;overflow:auto;background:radial-gradient(ellipse at 70% 0%,rgba(90,45,22,.92),rgba(18,10,6,.97) 70%)}
+.ovin{max-width:860px;margin:0 auto;padding:40px 16px}
+.title1{font-family:var(--px);font-size:clamp(38px,9vw,72px);line-height:1;font-weight:700;letter-spacing:.04em}
+.title1 b{color:var(--ochre)}
+.lead{color:var(--sand2);font-size:16px;line-height:1.55;max-width:640px}
+.three{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:18px 0}
+.three div{border:1px solid var(--line);border-top:4px solid var(--c);background:rgba(36,21,13,.8);padding:10px;font-size:13px;color:var(--sand2)}
+.three b{display:block;font-family:var(--px);font-size:18px;color:var(--c)}
+.form{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.form label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dim);letter-spacing:.1em;flex:1 1 180px}
+.form input{background:#24150d;border:2px solid var(--line2);color:var(--sand);padding:9px 10px;font-family:var(--px);font-size:17px}
+.fine{font-size:12px;color:var(--dim)}
+.endsec{background:var(--panel);border:1px solid var(--line);padding:14px;margin-bottom:10px}
+.endsec h3{margin:0 0 8px;font-family:var(--px);font-size:16px;letter-spacing:.12em;color:var(--dim)}
+.verdict{font-family:var(--px);font-size:clamp(28px,6vw,46px);margin:4px 0}
+.v-thrive{color:var(--water)}.v-critical{color:var(--ochre2)}.v-fail{color:var(--red)}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:620px){.g3{grid-template-columns:1fr}}
+.g3>div{border:1px solid var(--line);border-top:4px solid var(--c);padding:8px;background:#22140c}
+.g3 b{font-family:var(--px);font-size:18px}
+.st-self{color:var(--grn)}.st-dep{color:var(--yel)}.st-crisis{color:var(--red)}
+.bars{display:grid;grid-template-columns:150px 1fr 60px;gap:4px 8px;align-items:center;font-size:12.5px}
+.bars i{display:block;height:9px;background:var(--ochre)}
+.bars span:nth-child(3n){font-family:var(--px);text-align:right}
+.hidlist{list-style:none;margin:0;padding:0}
+.hidlist li{border-left:3px solid var(--c);background:#22140c;padding:8px 10px;margin-bottom:6px;font-size:13px}
+.hidlist .h{color:var(--ochre2)}.hidlist .sci{color:var(--sand2);font-size:12px}.hidlist .ch{color:var(--sand);font-size:12.5px;margin-top:3px}
+.wi-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:5px;margin-bottom:8px}
+.wi-pick button{background:#2a180f;border:1px solid var(--line);padding:6px 8px;text-align:left;font-size:12px}
+.wi-pick button small{display:block;color:var(--dim);font-size:10.5px}
+.wi-pick button.on{border-color:var(--ochre)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:620px){.split{grid-template-columns:1fr}}
+.split>div{border:1px solid var(--line2);padding:10px;background:#1f120b}
+.split .k{font-size:10px;letter-spacing:.14em;color:var(--dim)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:1px 10px;font-size:12.5px;margin-top:6px}
+.kv b{font-weight:600;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--ochre)}
+.charts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+@media (max-width:820px){.charts{grid-template-columns:1fr}}
+.charts>div{background:#1f120b;border:1px solid var(--line);padding:6px}
+.charts h5{margin:0 0 2px;font-family:var(--px);font-size:13px;color:var(--c)}
+.chain{list-style:none;padding:0;margin:8px 0 0}
+.chain li{font-size:12.5px;padding:6px 8px;background:#22140c;border-left:3px solid var(--line2);margin-bottom:4px}
+.chain li.m{border-left-color:var(--ochre)}.chain li.a{border-left-color:var(--water)}
+table.opt{width:100%;border-collapse:collapse;font-size:12px}
+table.opt th,table.opt td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:top}
+table.opt th{font-family:var(--px);font-size:13px;color:var(--dim);font-weight:400}
+table.opt td.diff{color:var(--ochre2)}
+.tablewrap{overflow-x:auto}
+.prog{height:8px;background:#1a0f09;border:1px solid var(--line);margin:6px 0}.prog i{display:block;height:100%;background:var(--water);width:0}
+/* nəticə cədvəli */
+table.res{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}
+table.res th{font-family:var(--px);font-weight:400;color:var(--dim);text-align:right;padding:3px 6px;border-bottom:1px solid var(--line2)}
+table.res th:first-child,table.res td:first-child{text-align:left}
+table.res td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+table.res td:first-child{font-family:var(--sans)}table.res small{color:var(--dim)}
+table.res td.up{color:var(--grn)}table.res td.dn{color:var(--red)}
+.sci{border-left:3px solid var(--water);background:#14231f;padding:6px 10px;margin-top:8px}.sci p{margin:2px 0;font-size:13.5px;line-height:1.45}
+/* obyekt paneli */
+#info{position:absolute;right:10px;top:64px;width:330px;z-index:7;background:rgba(22,13,8,.97);border:2px solid var(--c);padding:10px 12px;max-height:calc(100vh - 80px);overflow:auto;font-size:12.5px}
+#info .ih{display:flex;justify-content:space-between;gap:8px}#info h3{margin:0;font-family:var(--px);font-size:19px}
+#info .ih button{background:none;border:1px solid var(--line2);height:28px;width:28px}
+#info .kick{font-family:var(--px);letter-spacing:.15em;font-size:11px}
+#info h5{margin:10px 0 3px;font-family:var(--px);font-size:13px;color:var(--c);letter-spacing:.06em}
+#info .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:6px}#info .kv span{white-space:nowrap;color:var(--sand2)}#info .kv b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}#info .kv .w{color:var(--red)}
+.ist{display:inline-block;margin-top:6px;padding:2px 8px;border:1px solid;font-family:var(--px)}
+.ist.ok{color:var(--grn)}.ist.warn{color:var(--yel)}.ist.bad{color:var(--red)}.ist.idle{color:var(--sand2)}
+@media (max-width:760px){#info{position:fixed;left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:62vh}}
+/* proqnoz, elm/fərziyyə nişanları */
+.card .proj{border-top:1px dashed var(--line2);padding-top:5px;margin-top:2px;font-size:11.5px;color:var(--sand2);display:grid;grid-template-columns:auto 1fr;gap:1px 8px}
+.card .proj b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.card .proj .hd{grid-column:1/-1;font-family:var(--px);font-size:11px;letter-spacing:.12em;color:var(--water)}
+.card .proj .bad{color:var(--red)}.card .proj .good{color:var(--grn)}
+.card .proj .warn{grid-column:1/-1;color:var(--red);font-weight:600}
+.kind{display:inline-block;font-family:var(--px);font-size:10.5px;letter-spacing:.08em;padding:0 6px;border:1px solid;margin-left:6px;vertical-align:middle}
+.kind.fact{color:var(--grn)}.kind.est{color:var(--yel)}.kind.game{color:var(--ochre2)}
+#hud .scibtn{background:rgba(30,18,11,.9);border:1px solid var(--line2);padding:4px 9px;font-family:var(--px);font-size:13px;color:var(--water)}
+#sciPanel .cardsbox{max-width:860px;border-color:var(--water)}
+#sciPanel table{width:100%;border-collapse:collapse;font-size:12.5px}
+#sciPanel td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top}
+#sciPanel td:nth-child(3){font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+#sciPanel td:last-child{color:var(--dim);font-size:11.5px}
+.forced{border-left:3px solid var(--red);background:#2e130c;padding:6px 10px;font-size:12.5px;margin:6px 0}
+.integrity{font-size:12px;color:var(--grn);margin:4px 0}
+.branches{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.branches button{background:#2a180f;border:1px solid var(--line);padding:4px 8px;font-size:11.5px}
+.branches button.on{border-color:var(--water);color:var(--water)}
+.card .alt-why{font-size:11px;color:var(--red)}
+/* final cinematic log */
+#cine{position:absolute;left:0;right:0;bottom:0;z-index:25;background:linear-gradient(transparent,rgba(10,6,4,.95) 30%);padding:60px 16px 22px;text-align:center}
+#cine p{max-width:760px;margin:0 auto;font-size:16px;line-height:1.6;font-style:italic;color:var(--sand)}
+#cine .who{font-family:var(--px);color:var(--ochre2);letter-spacing:.15em;font-style:normal;margin-bottom:6px}
+/* mobile */
+@media (max-width:760px){
+ #app{height:auto;min-height:100vh;overflow:visible}
+ #phaser{position:relative;height:56.25vw;margin-top:108px}
+ #hud{position:fixed;padding:6px 10px}
+ .brand{font-size:15px}.tele div{min-width:0;padding:1px 6px}.tele b{font-size:14px}
+ #goals{position:static;width:auto;max-height:none;margin:8px 10px;display:grid;grid-template-columns:1fr 1fr;overflow:visible}
+ #qlog{position:static;width:auto;max-height:none;margin:0 10px 90px}
+ #follow{position:fixed;bottom:auto;top:96px}
+ #dialog{position:fixed}
+ .modal,.ov{position:fixed}
+ #banner{position:fixed;top:30%}
+ #cine{position:fixed}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="phaser"></div>
+  <div id="hud" hidden>
+    <div class="brand">BUTTERFLY<b>:</b> MARS</div>
+    <div class="tele">
+      <div><label>Sol</label><b id="hSol">000 / 100</b></div>
+      <div id="hTauBox"><label>τ toz</label><b id="hTau">0.50</b></div>
+      <div><label>Temp</label><b id="hTemp">−63°C</b></div>
+      <div><label>Büdcə</label><b id="hB">200M $</b></div>
+    </div>
+    <div class="speed" id="speed">
+      <button data-s="0" title="Pauza">❚❚</button><button data-s="1" class="on">×1</button><button data-s="3">×3</button><button data-s="10">×10</button>
+    </div>
+    <button class="scibtn" data-sci="1" title="Hansı rəqəm ölçüdür, hansı fərziyyə?">ELM / FƏRZİYYƏ</button>
+  </div>
+  <div id="goals" hidden></div>
+  <div id="qlog" hidden><h3>GÖREV JURNALI <button id="qtoggle">▾</button></h3><div class="qbody" id="qbody"></div></div>
+  <button id="follow" hidden>◎ Komandiri izlə</button>
+  <div id="banner" hidden></div>
+  <div id="dialog" hidden><img id="dPort" alt=""><div style="flex:1"><div class="who" id="dWho"></div><div class="say" id="dSay"></div><div class="hint">▸ toxun / klik</div></div></div>
+  <div id="cards" class="modal" hidden></div>
+  <div id="note" class="modal" style="align-items:center" hidden></div>
+  <div id="sciPanel" class="modal" style="align-items:center;z-index:40" hidden></div>
+  <aside id="info" hidden></aside>
+  <div id="cine" hidden><div class="who" id="cineWho"></div><p id="cineTxt"></p></div>
+
+  <section id="title" class="ov">
+    <div class="ovin">
+      <div class="fine" style="letter-spacing:.3em;font-family:var(--px)">2045 · JEZERO KRATERİ · 1 SOL = 24 s 39 dəq</div>
+      <div class="title1">BUTTERFLY<b>:</b><br>MARS</div>
+      <p class="lead">Dörd nəfərlik ekipaj boş Mars səthinə endi. Sən komandirsən — amma əmrləri skafandrdakılar yerinə yetirir. Sən yalnız seçirsən. Hər seçim enerji yeyir, və enerji üç həyati məqsədin ortaq valyutasıdır.</p>
+      <div class="three">
+        <div style="--c:var(--air)"><b>HAVA</b>Oksigen istehsalı, CO₂-nin udulması, hermetiklik. 4 nəfər gündə 3.4 kq O₂ yandırır.</div>
+        <div style="--c:var(--water)"><b>SU</b>İçmə və gigiyena: gündə 40 kq. Buz, minerallar, təkrar emal.</div>
+        <div style="--c:var(--food)"><b>QİDA</b>Gündə 10 800 kkal. 60 Sol-luq paket — sonra öz məhsulun.</div>
+        <div style="--c:var(--energy)"><b>ENERJİ</b>Hamısının valyutası. Toz fırtınası günəşi söndürəndə kim enerji alacaq?</div>
+      </div>
+      <div class="form">
+        <label>KOMANDİRİN ADI<input id="tName" maxlength="16" value="Komandir"></label>
+        <label>MİSSİYA KODU (SEED)<input id="tSeed" maxlength="12"></label>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="tStart">Missiyaya başla ▸</button><button class="btn ghost" id="tNew">Yeni kod</button><button class="btn ghost" data-sci="1">Elm və fərziyyələr</button></div>
+      <p class="fine" style="margin-top:12px">Siçan/barmaqla dünyanı sürüşdür. Sürət: ×1 / ×3 / ×10. Eyni kod = eyni fırtınalar və təsadüflər — seçimlərinin nəticəsini dostunla müqayisə et.</p>
+    </div>
+  </section>
+  <section id="end" class="ov" hidden><div class="ovin" id="endIn" style="max-width:1100px"></div></section>
+</div>
+
+<!-- ======================= ENGINE (təmiz, qrafikadan ayrı) ======================= -->
+<script id="engine">
+'use strict';
+/* =====================================================================
+   SCIENCE — real elmi sabitlər. Mənbələr:
+   [BVAD]  NASA Life Support Baseline Values and Assumptions Document (2018/2022)
+   [MOXIE] Hecht et al. 2023, MOXIE / Perseverance (Science Advances)
+   [RAD]   Hassler et al. 2014, Curiosity RAD (Science)
+   [KRUSTY] NASA Kilopower / KRUSTY sınağı (2018)
+   [ECLSS] NASA ISS ECLSS, su bərpası 98% (2023)
+   [MER]   Mars Exploration Rover/Opportunity enerji məlumatları, 2018 PEDE fırtınası
+   [PHX]   Phoenix lander — regolitdə perxlorat (Hecht et al. 2009)
+   ===================================================================== */
+const SCIENCE = {
+  solHours: 24.65,                     // 1 Sol = 24 s 39 dəq
+  crew: 4,
+  mars: { tempMean:-63, tempDay:-20, tempNight:-80, pressure_kPa:0.6, co2Frac:0.95 },
+  solar: { vsEarth:0.43, kWhPerM2Sol:0.8, dustK:0.8 },              // [MER] çıxış ≈ exp(−0.8·(τ−0.5))
+  tau: { clearMin:0.4, clearMax:0.9, stormMin:3, stormMax:5, opportunity2018:10.8 },  // [MER]
+  rad: { surface_mSvSol:0.64, careerLimit_mSv:600, warn_mSv:100 }, // [RAD] Hassler 2014: 0.64±0.12 mSv/Sol (ölçü)
+  perchlorateFrac: [0.004, 0.006],     // [PHX] 0.4–0.6 kütlə % (Hecht 2009)
+  human: { o2:0.84, co2:1.0, waterDrink:2.5, waterHyg:7.0, kcal:2700 },        // [BVAD] nəfər/Sol
+  tech: {
+    moxie_kWhPerKgO2: 10,              // miqyaslı MOXIE, ~800°C
+    moxieRecord: { totalG:122, bestGPerH:12 },                      // [MOXIE] 2021–2023
+    waterElec_kWhPerKgH2O: 5.5, waterElec_O2:0.89, waterElec_H2:0.11,
+    ice_kWhPerKg: 0.75, hydrated_kWhPerKg: 3, hydratedWaterFrac:[0.02,0.03],
+    recycleISS: 0.98, recycleSimple: 0.85,                          // [ECLSS]
+    led_kWhPerM2Sol: 5.5, cropAreaPerPerson_m2: 45,
+    kilopower_kWe: 10, kilopower_kWhSol: 240                         // [KRUSTY]
+  }
+};
+
+/* =====================================================================
+   TUNE — oyun fərziyyələri və BALANS düymələri (elmi sabitlərdən törəmə)
+   ===================================================================== */
+const TUNE = {
+  sols: 100,
+  start: { O2:100, W:1100, foodSols:60, E:100, cap:100, B:200, mood:75, lioh:50, kits:1, panelArea:700 },   // balans
+  heat: { inflate:70, regolith:50, lava:40 },      // kWh/Sol yaşayış istiliyi
+  eclss: 20,                                        // ventilyasiya, nasoslar, kompüter
+  amine: { kwh:12, cap:6 },                         // kq CO2/Sol
+  lioh:  { pack:300, rate:4.5 },                    // kq CO2 tutumu, maks. kq/Sol
+  bioScrub: 3.0,                                    // kiçik yosun skrubberi, kq CO2/Sol
+  moxie: { kg:4.0 },                                // kq O2/Sol tutum
+  electro: { kg:4.0 },
+  lox: { kg:200 },
+  ice: { kg:30, heater:8 }, minerals: { kg:30 }, wavar: { kg:9, kwh:15 }, brine: { kg:25 },
+  waterUse: 10,                                     // kq/nəfər/Sol (BVAD)
+  recycle: { base:{r:0.5,kwh:3}, iss:{r:0.98,kwh:15}, simple:{r:0.85,kwh:6}, bio:{r:0.72,bonus:0.18,kwh:3} },
+  crops: { led:{kcal:10800,kwhM2:5,area:60}, gh:{kcal:11000,kwhM2:0.6,area:100,rad:0.03}, spir:{kcal:6500,kwhM2:2.5,area:10,o2:1.5},
+           delay:14, ramp:20, spirDelay:8, spirRamp:10, cropWater:2, o2PerKcal:0.84/2700 },
+  soil: { regolith:{f:1.1,water:5,eco:0.08}, hydro:{f:1.0,until:80,after:0.5}, compost:{early:0.75,late:1.05,switchSol:60} },
+  reactor: { cableLoss:0.10 }, battery: { cap:500 }, extraPanels: 250,
+  lavaCableLoss: 0.10,
+  panel: { cheap:{k:0.95,loss:0.30}, std:{k:0.8,loss:0.10}, hard:{k:0.65,loss:0} },
+  evaBoost: 0.12,
+  cap: { O2:300, W:3000 },
+  co2PctPerKg: 0.04,
+  spe: { inflate:25, regolith:8, lava:2, shelterF:0.25 },
+  radRate: { inflate:0.6, regolith:0.25, lava:0.1 },  // mSv/Sol — qoruma modelinin TƏXMİNİ (ölçü deyil)
+  mood: { base:0.05, monotony:-0.15, lowRes:-0.6, zeroRes:-3, cold:-1.5, co2Hi:-2, co2Mid:-0.5, storm:-0.3 },
+  risk: { drill:0.008, drillLow:0.4, drillF:0.65, moxieBase:0.003, moxieCycle:0.01, moxieF:0.9,
+          leak:{inflate:0.02,regolith:0.006,lava:0.003}, hullF:0.3, disease:0.006, diseaseLED:2, diseaseHydro:1.3, chemOk:0.6, co2Event:0.5 },
+  fail: { O2:2, W:3, food:10, co2:2.5, co2Sols:2 },
+  goal: { airO2:25, waterW:80, foodRatio:0.65 }
+};
+
+const clamp=(v,a,b)=>v<a?a:v>b?b:v, r1=v=>Math.round(v*10)/10, pct=v=>Math.round(v*100);
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function codeFromSeed(seed){ return 'JZR-'+(seed>>>0).toString(36).toUpperCase().padStart(7,'0'); }
+function seedFromCode(str){ const s=String(str||'').trim().toUpperCase().replace(/^JZR-?/,'');
+  if(/^[0-9A-Z]{1,7}$/.test(s)){ const n=parseInt(s,36); if(n<=0xFFFFFFFF) return n>>>0; }
+  let h=2166136261; for(const c of s){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
+const CREW_KCAL = ()=>SCIENCE.human.kcal*SCIENCE.crew;
+
+/* Bütün mühit OYUN ƏVVƏLİNDƏ yaradılır — seçimlər onu dəyişmir */
+function makeEnv(seed){
+  const r=mulberry32(seed>>>0), N=TUNE.sols, rng=(a,b)=>a+(b-a)*r(), ri=(a,b)=>Math.floor(a+(b-a+1)*r());
+  const s1={start:ri(30,45),dur:ri(8,15),peak:rng(3,5)}, s2={start:ri(70,85),dur:ri(5,8),peak:rng(1.8,2.6)};
+  const storms=[s1,s2], tau=[], base=[], u=[];
+  let bt=rng(0.45,0.7);
+  for(let s=0;s<=N+1;s++){ bt=clamp(bt+(r()-0.5)*0.1,0.4,0.9); base[s]=bt;
+    u[s]={water:r(),oxy:r(),leak:r(),crop:r(),chem:r(),temp:r()}; }
+  for(let s=0;s<=N+1;s++){ let t=base[s];
+    for(const st of storms) if(s>=st.start&&s<st.start+st.dur){ const x=(s-st.start+0.5)/st.dur; t=Math.max(t,st.peak*Math.sin(Math.PI*x)+0.5); }
+    tau[s]=t; }
+  const nSpe=r()<0.5?1:2, spe=[]; for(let i=0;i<nSpe;i++) spe.push(ri(12,95));
+  return { seed:seed>>>0, storms, tau, base, u, spe:[...new Set(spe)].sort((a,b)=>a-b) };
+}
+function stormIndex(env,sol){ for(let i=0;i<env.storms.length;i++){ const st=env.storms[i]; if(sol>=st.start&&sol<st.start+st.dur) return i; } return -1; }
+
+/* ===================== GÖREVLƏR (data) ===================== */
+const GOALS = { air:{name:'HAVA',color:'#9cd0f0'}, water:{name:'SU',color:'#4fc2b4'}, food:{name:'QİDA',color:'#8fc85a'}, energy:{name:'ENERJİ',color:'#f0b84a'}, all:{name:'BAZA',color:'#e0a070'} };
+const CREW = [
+  { id:'cmd', name:'Komandir', role:'Komandir', suit:0xf2efe6, accent:0xe08a2e },
+  { id:'murad', name:'Murad', role:'Mühəndis', suit:0xf0c040, accent:0x6a4a20 },
+  { id:'aysel', name:'Aysel', role:'Botanik', suit:0x7cc56a, accent:0x2c5a2a },
+  { id:'kamran', name:'Dr. Kamran', role:'Həkim', suit:0x6aa8e0, accent:0x1f3f6a }
+];
+const ZONES = { shelter:420, energy:900, air:1380, water:1860, food:2360, explore:2900 };
+const S=g=>g.s;
+const QUESTS = [
+ { id:'G0', sol:0, goal:'all', zone:'shelter', title:'Yer seçimi və sığınacaq',
+   dialog:[['murad','Şişirilən modulu bir günə qururuq. Vaxt həyatdır, komandir.'],['kamran','Səthdə Curiosity gündə orta hesabla 0.64 mSv ölçüb. Divarlarımız bizi qorumalıdır.']],
+   options:[
+    { id:'inflate', label:'Şişirilən səth modulu', cost:20, energy:()=>`İstilik: ${TUNE.heat.inflate} kWh/Sol`, visible:'Ucuz və tez. Nazik divar.', eco:'yaşıl',
+      hidden:'Radiasiya ≈0.6 mSv/Sol; mikrometeorit/tikiş sızması riski ən yüksəkdir (hava itkisi).',
+      science:['Curiosity RAD Gale kraterinin səthində orta hesabla 0.64 mSv/Sol doza ölçdü (qalaktik kosmik şüalar). Nazik qabığın onu necə azaltdığı (oyunda 0.6) — model təxminidir.','Hassler et al. 2014, Science (Curiosity RAD)'],
+      apply:g=>{ S(g).shelter='inflate'; } },
+    { id:'regolith', label:'Regolitlə örtülmüş modul', cost:35, energy:()=>`İstilik: ${TUNE.heat.regolith} kWh/Sol`, visible:'2 m qum torbası; ekipaj işi tələb edir (əhval −5).', eco:'yaşıl',
+      hidden:'Radiasiya ≈0.25 mSv/Sol, sızma riski aşağı.',
+      science:['2–3 m regolit qatı kosmik şüa dozasını təxminən yarıdan çox azaldır və istiliyi saxlayır.','Curiosity RAD; NASA habitat tədqiqatları'],
+      apply:g=>{ S(g).shelter='regolith'; S(g).mood-=5; } },
+    { id:'lava', label:'Lava tuneli', cost:55, energy:()=>`İstilik: ${TUNE.heat.lava} kWh/Sol, kabel itkisi 10%`, visible:'Ən yaxşı qoruma. Panellər üçün yer azdır.', eco:'yaşıl',
+      hidden:'Radiasiya ≈0.1 mSv/Sol; uzun kabellər günəş enerjisinin 10%-ni itirir.',
+      science:['Lava tunelləri onlarla metr qaya altında radiasiya və temperatur sıçrayışlarından qoruyur.','NASA/ESA mağara tədqiqatları'],
+      apply:g=>{ S(g).shelter='lava'; } }
+ ]},
+ { id:'GE1', sol:0, goal:'energy', zone:'energy', title:'İlk enerji',
+   dialog:[['murad','Ucuz panellərlə pula qənaət edək — artıq pul hava və suya lazımdır.'],['cmd','2018-də Opportunity fırtınada susdu. Toz bizi də susdura bilər.']],
+   options:[
+    { id:'cheap', label:'Yüngül panellər', cost:15, energy:'500 m² · ≈400 kWh/Sol (aydın hava)', visible:'Ucuz, yüngül.', eco:'sarı',
+      hidden:()=>`Fırtınada kəskin zəifləyir (k=${TUNE.panel.cheap.k}); fırtınadan sonra ${pct(TUNE.panel.cheap.loss)}%-ə qədər qırılma/toz itkisi.`,
+      science:['Opportunity roveri 2018-ci il qlobal toz fırtınasında (τ≈10.8) enerjisiz qaldı və bir daha oyanmadı. (Oyundakı exp(−k·(τ−0.5)) azalma düsturu sadələşdirilmiş modeldir.)','NASA JPL, Opportunity missiyasının sonu (2019)'],
+      apply:g=>setPanel(g,'cheap') },
+    { id:'std', label:'Standart panellər', cost:30, energy:'500 m² · ≈400 kWh/Sol', visible:'Sınaqdan keçmiş standart.', eco:'yaşıl',
+      hidden:()=>`Fırtınada orta zəifləmə (k=${TUNE.panel.std.k}); fırtınadan sonra ${pct(TUNE.panel.std.loss)}% itki.`,
+      science:['Mars orbitində günəş işığının gücü Yerdəkinin ≈43%-idir (≈590 W/m²). Oyundakı ≈0.8 kWh/m²/Sol elektrik çıxışı — panel səmərəliliyinə əsaslanan təxmindir.','NASA Mars Fact Sheet'],
+      apply:g=>setPanel(g,'std') },
+    { id:'hard', label:'Gücləndirilmiş, öz-özünü təmizləyən', cost:50, energy:'500 m² · ≈400 kWh/Sol', visible:'Elektrostatik toz təmizləmə.', eco:'yaşıl',
+      hidden:()=>`Fırtınada ən az zəifləyir (k=${TUNE.panel.hard.k}); toz itkisi yoxdur.`,
+      science:['Elektrodinamik toz qalxanı (EDS) panel səthindəki tozu elektrik sahəsi ilə itələyir — laboratoriyada sınaqdan keçib, Marsda hələ istifadə olunmayıb.','NASA KSC EDS tədqiqatı'],
+      apply:g=>setPanel(g,'hard') }
+ ]},
+ { id:'G1.1', sol:1, goal:'air', zone:'air', title:'İlk nəfəs',
+   dialog:[['murad','MOXIE atmosferdən oksigen çıxarır — su lazım deyil!'],['aysel','Elektroliz sadədir, amma hər kiloqram O₂ bizim suyumuzdan gedir.']],
+   options:[
+    { id:'moxie', label:'MOXIE tipli CO₂ elektrolizi', cost:30, energy:()=>`Enerji: +${TUNE.moxie.kg*SCIENCE.tech.moxie_kWhPerKgO2} kWh/Sol`, visible:()=>`O₂: +${TUNE.moxie.kg} kq/Sol. Su tələb etmir.`, eco:'yaşıl',
+      hidden:'≈800°C-də işləyir: enerji kəsiləndə hər soyuma-qızma dövrü keramikanı köhnəldir → qəza riski artır.',
+      science:['MOXIE 2021–2023-də Marsda 122 q oksigen istehsal etdi — ən yaxşı saatda 12 q/saat.','NASA JPL, MOXIE yekunu (2023); Hoffman et al. 2022, Science Advances'],
+      apply:g=>{ S(g).o2src='moxie'; } },
+    { id:'electro', label:'Su elektrolizi', cost:15, energy:()=>`Enerji: +${r1(TUNE.electro.kg/SCIENCE.tech.waterElec_O2*SCIENCE.tech.waterElec_kWhPerKgH2O)} kWh/Sol`, visible:()=>`O₂: +${TUNE.electro.kg} kq/Sol. Sürətli, sadə.`, eco:'yaşıl',
+      hidden:()=>`Hər Sol ≈${r1(TUNE.electro.kg/SCIENCE.tech.waterElec_O2)} kq su yeyir → SU məqsədinə zərbə; su bitsə oksigen də dayanır.`,
+      science:['1 kq su elektrolizlə 0.89 kq O₂ + 0.11 kq H₂ verir (stoxiometriya; ISS OGS prinsipi). Praktik enerji ≈5.5 kWh/kq — təxmindir.','ISS ECLSS / kimya'],
+      apply:g=>{ S(g).o2src='electro'; } },
+    { id:'lox', label:'Yerdən maye oksigen ehtiyatı', cost:40, energy:'Enerji: 0', visible:g=>`+${TUNE.lox.kg} kq O₂ ehtiyat (anbar maks. ${TUNE.cap.O2} kq): bitkisiz ≈${Math.round(Math.min(TUNE.cap.O2,S(g).O2+TUNE.lox.kg)/(SCIENCE.human.o2*SCIENCE.crew))} Sol-a çatır.`, eco:'qırmızı',
+      hidden:'Ehtiyat tükənir; hər təchizat raketi Yerdə ≈450 t CO₂ izi yaradır.',
+      science:['Bir ağır raket buraxılışı yüzlərlə ton CO₂ ekvivalenti atır.','Raket emissiya tədqiqatları'],
+      apply:g=>{ S(g).o2src='lox'; S(g).O2=Math.min(TUNE.cap.O2,S(g).O2+TUNE.lox.kg); S(g).eco+=15; } }
+ ]},
+ { id:'G3.1', sol:1, goal:'food', zone:'shelter', title:'Ehtiyat',
+   dialog:[['kamran','60 Sol-luq paketimiz var. Məhsul gecikərsə, aclıq başlayar.'],['aysel','Hər əlavə raket — həm pul, həm Yerdə karbon izi.']],
+   options:[
+    { id:'reserve', label:'Əlavə 30 Sol-luq ehtiyat sifariş et', cost:30, energy:'Enerji: 0', visible:'+324 000 kkal.', eco:'qırmızı',
+      hidden:'Təchizat raketi Ekoloji izi artırır.', science:['Bir nəfər gündə ≈2700 kkal tələb edir; 4 nəfər üçün 30 Sol ≈324 000 kkal.','NASA BVAD'],
+      apply:g=>{ S(g).food+=30*CREW_KCAL(); S(g).eco+=8; } },
+    { id:'none', label:'Sifariş etmə', cost:0, energy:'Enerji: 0', visible:'Büdcə qorunur. Paketlər Sol 60-a çatır.', eco:'yaşıl',
+      hidden:'Məhsul Sol 60-dan əvvəl yetişməsə, aclıq başlayacaq.', science:['Quru qida ≈0.6–0.7 kq/nəfər/Sol — hər kiloqramın Marsa daşınması baha başa gəlir.','NASA BVAD'] }
+ ]},
+ { id:'G2.1', sol:5, goal:'water', zone:'water', title:'Su mənbəyi',
+   dialog:[['murad','SHARAD radarı burada yeraltı buz göstərir. Qazaq!'],['aysel','Regolitdə təxminən 2% su var — amma bunun üçün tonlarla torpaq qazmalıyıq.']],
+   options:[
+    { id:'ice', label:'Yeraltı buzu qazmaq', cost:30, energy:()=>`Enerji: +${r1(TUNE.ice.kg*SCIENCE.tech.ice_kWhPerKg+TUNE.ice.heater)} kWh/Sol`, visible:()=>`Su: +${TUNE.ice.kg} kq/Sol. Effektiv.`, eco:'yaşıl',
+      hidden:()=>`Buruq qızdırıcıdan asılıdır: su sisteminə enerji ${pct(TUNE.risk.drillF)}%-dən aşağı düşəndə −63°C-də donma riski ${pct(TUNE.risk.drill)}%→${pct(TUNE.risk.drillLow)}%.`,
+      science:['Buzu qazıb əritmək ≈0.5–1 kWh/kq tələb edir — su əldə etməyin ən ucuz yolu.','NASA RASSOR / Mars Ice Mapper'],
+      apply:g=>{ S(g).waterSrc='ice'; } },
+    { id:'minerals', label:'Hidratlı minerallardan su', cost:25, energy:()=>`Enerji: +${TUNE.minerals.kg*SCIENCE.tech.hydrated_kWhPerKg} kWh/Sol`, visible:()=>`Su: +${TUNE.minerals.kg} kq/Sol. Hər yerdə var.`, eco:'qırmızı',
+      hidden:'Çox enerji yeyir; günə ~1 t regolit qazılır — Ekoloji iz və Planet mühafizəsi pisləşir.',
+      science:['Curiosity SAM Gale kraterində torpaq kütləsinin ≈2%-nin bağlı su olduğunu ölçdü. Onu çıxarmaq üçün ≈3 kWh/kq — oyun təxminidir.','Leshin et al. 2013, Science (Curiosity SAM)'],
+      apply:g=>{ S(g).waterSrc='minerals'; S(g).pp-=5; } },
+    { id:'wavar', label:'Atmosfer rütubətini tutmaq (WAVAR)', cost:10, energy:()=>`Enerji: +${TUNE.wavar.kwh} kWh/Sol`, visible:()=>`Su: +${TUNE.wavar.kg} kq/Sol. Ekoloji təmiz.`, eco:'yaşıl',
+      hidden:'Çox az su verir: yalnız güclü təkrar emalla birlikdə yaşamaq olar.',
+      science:['Mars atmosferində su buxarı cəmi ≈0.03%-dir; WAVAR onu seolitlə udur.','NASA WAVAR konsepsiyası'],
+      apply:g=>{ S(g).waterSrc='wavar'; } }
+ ]},
+ { id:'G1.2', sol:10, goal:'air', zone:'air', title:'CO₂ təmizlənməsi',
+   dialog:[['kamran','Kabində CO₂ 0.5%-i keçsə, baş ağrısı başlayır; 1%-dən sonra təhlükəlidir.'],['aysel','Bitkilər CO₂-ni udur — həm qida, həm hava!']],
+   options:[
+    { id:'amine', label:'Amin/seolit süzgəcləri (ISS kimi)', cost:15, energy:()=>`Enerji: +${TUNE.amine.kwh} kWh/Sol`, visible:()=>`CO₂: −${TUNE.amine.cap} kq/Sol. Etibarlı.`, eco:'yaşıl',
+      hidden:'Enerji həyat təminatı prioritetindədir — amma batareya boşalanda o da zəifləyir.',
+      science:['ISS-də CDRA seolit yataqları CO₂-ni udub kosmosa atır; regenerasiya üçün qızdırılır.','ISS ECLSS'],
+      apply:g=>{ S(g).co2sys='amine'; } },
+    { id:'lioh', label:'Litium-hidroksid patronları', cost:10, energy:'Enerji: 0', visible:()=>`${TUNE.lioh.pack} kq CO₂ tutumu.`, eco:'sarı',
+      hidden:g=>`Patronlar (${Math.round(S(g).lioh)} kq qalıq + ${TUNE.lioh.pack} kq) bitki köməyi olmadan ekipajın ${SCIENCE.human.co2*SCIENCE.crew} kq/Sol CO₂-si ilə ≈${Math.round((S(g).lioh+TUNE.lioh.pack)/(SCIENCE.human.co2*SCIENCE.crew))} Sol-a çatır (Sol ≈${g.sol+Math.round((S(g).lioh+TUNE.lioh.pack)/(SCIENCE.human.co2*SCIENCE.crew))}) və tullantı yaradır.`,
+      science:['LiOH CO₂ ilə reaksiyaya girib Li₂CO₃ əmələ gətirir — Apollo 13 ekipajını xilas edən üsul.','NASA Apollo/Shuttle'],
+      apply:g=>{ S(g).co2sys='lioh'; S(g).lioh+=TUNE.lioh.pack; S(g).eco+=6; } },
+    { id:'bio', label:'Bitki/yosun bioregenerasiyası', cost:8, energy:'Enerji: ~0', visible:'CO₂-ni bitkilər udur. QİDA ilə bağlıdır.', eco:'yaşıl',
+      hidden:'Bitkilər azalanda (fırtına, xəstəlik) CO₂ kabində yığılır.',
+      science:['Fotosintez: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂. 45 m² bitki təxminən bir insanın havasını bərpa edir.','NASA BIO-Plex, MELiSSA (ESA)'],
+      apply:g=>{ S(g).co2sys='bio'; } }
+ ]},
+ { id:'G3.2', sol:15, goal:'food', zone:'food', title:'İlk məhsul',
+   dialog:[['aysel','LED-lə tam qapalı hidroponika — günəşdən asılı deyil, amma enerjini yeyir.'],['murad','Təbii işıqlı istixana ucuzdur. Fırtınada isə... bitkilər də qaranlıqda qalır.']],
+   options:[
+    { id:'led', label:'LED-li hidroponika', cost:40, energy:()=>`Enerji: +${TUNE.crops.led.area*TUNE.crops.led.kwhM2} kWh/Sol (çox ağır!)`, visible:g=>`${TUNE.crops.led.area} m² · ilk məhsul Sol ${g.sol+TUNE.crops.delay+1}, tam rasion Sol ${g.sol+TUNE.crops.delay+TUNE.crops.ramp}-dən.`, eco:'yaşıl',
+      hidden:'Enerji prioritetində qida sonuncudursa, fırtınada bitkilər qaranlıqda qalır; hidroponikada xəstəlik sürətlə yayılır (risk ×2).',
+      science:['LED ilə bitki becərmə ≈5–6 kWh/m²/Sol tələb edir; tam rasion üçün ≈40–50 m²/nəfər lazımdır.','NASA Veggie / BVAD'],
+      apply:g=>{ S(g).foodSys='led'; S(g).planted=g.sol; } },
+    { id:'gh', label:'Təbii işıqlı istixana', cost:25, energy:()=>`Enerji: +${TUNE.crops.gh.area*TUNE.crops.gh.kwhM2} kWh/Sol (istilik)`, visible:()=>`${TUNE.crops.gh.area} m² · tam rasion (aydın havada).`, eco:'yaşıl',
+      hidden:'Fırtınada məhsul τ ilə birlikdə düşür; şüşə radiasiyanı saxlamır (+0.03 mSv/Sol).',
+      science:['Marsda günəş işığı fotosintez üçün kifayətdir, amma toz fırtınası işığı 90%-dən çox kəsə bilər.','Mars istixana tədqiqatları'],
+      apply:g=>{ S(g).foodSys='gh'; S(g).planted=g.sol; } },
+    { id:'spir', label:'Spirulina fotobioreaktoru', cost:20, energy:()=>`Enerji: +${TUNE.crops.spir.area*TUNE.crops.spir.kwhM2} kWh/Sol`, visible:()=>`${TUNE.crops.spir.area} m² · rasionun ~35%-i + ${TUNE.crops.spir.o2} kq O₂/Sol.`, eco:'yaşıl',
+      hidden:'Tam rasion deyil; monoton qida əhvalı yavaş-yavaş aşağı salır.',
+      science:['Spirulina quru kütləsinin ≈60%-i proteindir; ESA MELiSSA layihəsində həm qida, həm O₂ mənbəyidir.','ESA MELiSSA'],
+      apply:g=>{ S(g).foodSys='spir'; S(g).planted=g.sol; } }
+ ]},
+ { id:'G2.2', sol:20, goal:'water', zone:'water', title:'Hər damla',
+   dialog:[['murad','ISS 2023-də suyun 98%-ni geri qaytardı. Biz də bacararıq.'],['aysel','Bitki kökləri və mikroblar suyu təmizləyə bilər — enerji demək olar tələb etmir.']],
+   options:[
+    { id:'iss', label:'ISS səviyyəli sistem (98%)', cost:30, energy:()=>`Enerji: +${TUNE.recycle.iss.kwh} kWh/Sol`, visible:'Gündə 40 kq-dan cəmi ~0.8 kq itir.', eco:'yaşıl', hidden:'Enerji çatmayanda bərpa faizi də düşür.',
+      science:['ISS ECLSS 2023-də sidik və rütubətdən 98% su bərpasına çatdı.','NASA ISS ECLSS'], apply:g=>{ S(g).recycle='iss'; } },
+    { id:'simple', label:'Sadə sistem (85%)', cost:10, energy:()=>`Enerji: +${TUNE.recycle.simple.kwh} kWh/Sol`, visible:'Gündə ~6 kq itir.', eco:'yaşıl', hidden:'Mənbə zəifdirsə, itki yığılır.',
+      science:['Sadə distillə + filtrasiya ≈85% bərpa verir.','NASA BVAD'], apply:g=>{ S(g).recycle='simple'; } },
+    { id:'bio', label:'Bioloji filtrlər', cost:12, energy:()=>`Enerji: +${TUNE.recycle.bio.kwh} kWh/Sol`, visible:'72–90% bərpa — bitkilərin vəziyyətindən asılı.', eco:'yaşıl',
+      hidden:'Bitkilər xəstələnəndə və ya fırtınada zəifləyəndə su bərpası da düşür (QİDA ↔ SU əlaqəsi).',
+      science:['Bitki kökləri və nitrifikasiya bakteriyaları boz suyu təmizləyir (MELiSSA, BIO-Plex).','ESA MELiSSA'], apply:g=>{ S(g).recycle='bio'; } }
+ ]},
+ { id:'GE2', sol:25, goal:'energy', zone:'energy', title:'Fırtınaya hazırlıq',
+   dialog:[['murad','Peyk tozun qalxdığını göstərir. Reaktor fırtınaya baxmır.'],['kamran','Reaktor bazaya yaxın olmamalıdır — radiasiya.']],
+   options:[
+    { id:'battery', label:'Batareya bloku (Li-ion)', cost:25, energy:()=>`Tutum: 100 → ${TUNE.battery.cap} kWh`, visible:'Gecə və qısa fırtına üçün ehtiyat.', eco:'sarı', hidden:'Enerji istehsal etmir — uzun fırtınada yenə boşalır.',
+      science:['Li-ion batareyalar Marsda gecə soyuğunda qızdırılmalıdır.','Perseverance güc sistemi'], apply:g=>{ S(g).cap=TUNE.battery.cap; } },
+    { id:'reactor', label:'Kilopower reaktoru 10 kWe', cost:70, energy:'+240 kWh/Sol, fırtınadan asılı deyil', visible:'Sabit baza gücü.', eco:'sarı',
+      hidden:()=>`Radiasiyadan qorunmaq üçün 1 km uzaqda qurulur: kabel itkisi ${pct(TUNE.reactor.cableLoss)}% (əslində ${Math.round(SCIENCE.tech.kilopower_kWhSol*(1-TUNE.reactor.cableLoss))} kWh/Sol).`,
+      science:['KRUSTY sınağı (2018) 1 kWe prototipi 28 saat işlətdi; 10 kWe versiya ≈240 kWh/Sol verir.','NASA Kilopower/KRUSTY'], apply:g=>{ S(g).reactor=1; S(g).eco+=5; } },
+    { id:'panels', label:'Əlavə panellər', cost:25, energy:()=>`+${TUNE.extraPanels} m² (≈+200 kWh/Sol aydın havada)`, visible:'Seçdiyin panel tipi ilə.', eco:'yaşıl', hidden:'Panel tipinin zəif tərəfləri də böyüyür.',
+      science:['Panel sahəsini artırmaq fırtınada da mütləq çıxışı artırır, amma əmsal eynidir.','NASA Mars güc tədqiqatları'], apply:g=>{ S(g).panelArea+=TUNE.extraPanels; } },
+    { id:'none', label:'Heç nə', cost:0, energy:'—', visible:'Büdcə qorunur.', eco:'yaşıl', hidden:'',
+      science:['Opportunity 2018 fırtınasında batareya qızdırıcısı üçün belə enerji qalmadı.','MER'] }
+ ]},
+ { id:'GP', sol:26, goal:'energy', zone:'shelter', title:'Enerji prioriteti',
+   dialog:[['murad','Fırtınada hər kilovat-saat dava olacaq. Kim birinci?'],['aysel','Bitkilər bir neçə gün qaranlıqda qalsa, aylarla zəhmət itər.']],
+   options:[
+    { id:'std', label:'Həyat → O₂ → Su → Qida', cost:0, energy:'Standart sıra', visible:'Nəfəs birinci.', eco:'yaşıl', hidden:'Fırtınada bitkilər və buruq enerjisiz qalır.',
+      science:['NASA həyat təminatı sistemlərində ilk prioritet istilik və atmosfer nəzarətidir.','NASA ECLSS'], apply:g=>{ S(g).prio='std'; } },
+    { id:'water', label:'Həyat → Su → O₂ → Qida', cost:0, energy:'Su əvvəl', visible:'Buruq qızdırıcısı qorunur.', eco:'yaşıl', hidden:'O₂ istehsalı fırtınada daha çox düşür.',
+      science:['Donmuş buruğu yenidən işə salmaq çox enerji və EVA tələb edir.','Mars ISRU tədqiqatları'], apply:g=>{ S(g).prio='water'; } },
+    { id:'food', label:'Həyat → Qida → O₂ → Su', cost:0, energy:'Qida əvvəl', visible:'Bitkilər qaranlıqda qalmır.', eco:'yaşıl', hidden:'LED hidroponika enerjinin çoxunu udur — su və O₂ geri qalır.',
+      science:['Bitkilər qısa qaranlığa dözür, amma uzun işıqsızlıq məhsulu kəskin azaldır.','NASA Veggie'], apply:g=>{ S(g).prio='food'; } }
+ ]},
+ { id:'G3.3', sol:30, goal:'food', zone:'food', title:'Torpaq',
+   dialog:[['aysel','Mars torpağında 0.4–0.6% perxlorat var — əvvəlcə yumalıyıq.'],['kamran','Kompost tullantılarımızı da həll edir.']],
+   options:[
+    { id:'regolith', label:'Perxloratdan yuyulmuş regolit', cost:5, energy:'Enerji: ~0', visible:'Ucuz, böyük sahə: məhsul +10%.', eco:'qırmızı',
+      hidden:()=>`Yuyulma suyu zəhərli tullantı yaradır və gündə ${TUNE.soil.regolith.water} kq su yeyir.`,
+      science:['Phoenix 2008-də regolitdə 0.4–0.6% (kütlə) perxlorat ölçdü — tiroid üçün zəhərlidir.','Hecht et al. 2009, Science (Phoenix WCL)'], apply:g=>{ S(g).soil='regolith'; } },
+    { id:'hydro', label:'Hidroponik məhlul (Yerdən)', cost:15, energy:'Enerji: 0', visible:'Təmiz və sabit.', eco:'sarı', hidden:()=>`Qida maddələri Sol ${TUNE.soil.hydro.until}-də tükənir → məhsul yarıya düşür.`,
+      science:['Hidroponik məhlul azot, fosfor və kalium duzlarıdır — hamısı Yerdən daşınır.','NASA Veggie'], apply:g=>{ S(g).soil='hydro'; } },
+    { id:'compost', label:'Kompost', cost:8, energy:'Enerji: 0', visible:'Qapalı dövrə, ekoloji ən yaxşısı.', eco:'yaşıl', hidden:()=>`Yavaşdır: Sol ${TUNE.soil.compost.switchSol}-a qədər məhsul −25%, sonra +5%.`,
+      science:['Kompost qida maddələrini qapalı dövrədə saxlayır — MELiSSA-nın əsas ideyası.','ESA MELiSSA'], apply:g=>{ S(g).soil='compost'; S(g).eco-=5; } }
+ ]},
+ { id:'G1.3', sol:35, goal:'air', zone:'shelter', title:'Hermetiklik',
+   dialog:[['murad','Mikrometeorit kiçik deşik açsa, hava səssizcə gedir.'],['cmd','Büdcə də sonsuz deyil.']],
+   options:[
+    { id:'double', label:'İkiqat qabıq + sızma sensorları', cost:30, energy:'Enerji: ~0', visible:'Sızma riski −70%.', eco:'yaşıl', hidden:'',
+      science:['ISS modullarında mikrometeorit qalxanları (Whipple) çoxqatlıdır.','NASA ISS'], apply:g=>{ S(g).hull=1; } },
+    { id:'kits', label:'Yalnız təmir dəstləri', cost:10, energy:'Enerji: 0', visible:'+3 təmir dəsti (istənilən qəza 1 Sol-da).', eco:'yaşıl', hidden:'Dəstlər qazma və MOXIE qəzalarında da işə yarayır.',
+      science:['ISS ekipajı 2018-də Soyuz gövdəsindəki 2 mm deşiyi epoksidlə yamadı.','NASA/Roskosmos'], apply:g=>{ S(g).kits+=3; } },
+    { id:'none', label:'Heç nə', cost:0, energy:'—', visible:'Büdcə qorunur.', eco:'yaşıl', hidden:'Şişirilən modulda sızma riski ən yüksəkdir.',
+      science:['Mars atmosferinin təzyiqi 0.6 kPa-dır — kabin havası deşikdən sürətlə çıxır.','Mars mühiti'] }
+ ]},
+ { id:'G2.3', sol:40, goal:'water', zone:'explore', title:'Duzlu buz',
+   dialog:[['aysel','Duzlu suda mikrob izləri ola bilər! Bu, əsrin kəşfidir.'],['murad','Bu, həm də gündə 25 kq sudur. Susuz qalsaq kəşfin nə mənası var?']],
+   options:[
+    { id:'mine', label:'Qaz və istifadə et', cost:0, energy:()=>`Enerji: +${r1(TUNE.brine.kg*SCIENCE.tech.ice_kWhPerKg)} kWh/Sol`, visible:()=>`Su: +${TUNE.brine.kg} kq/Sol.`, eco:'qırmızı',
+      hidden:'Planet mühafizəsi −40; Yerdə qalmaqal (əhval −8, büdcə −10M).', science:['COSPAR "xüsusi regionlar" — maye suyun ola biləcəyi yerlər Yer mikrobları ilə çirklənməməlidir.','COSPAR Planet Mühafizəsi'],
+      apply:g=>{ S(g).brine=1; S(g).pp-=40; S(g).mood-=8; S(g).B=Math.max(0,S(g).B-10); } },
+    { id:'study', label:'Steril protokolla öyrən', cost:0, energy:'Enerji: ~0', visible:'Elm +, su yoxdur. Qrant +15M.', eco:'yaşıl', hidden:'',
+      science:['Steril alətlərlə nümunə götürmək həm kəşfi, həm də mühiti qoruyur.','COSPAR'], apply:g=>{ S(g).B+=15; S(g).pp=Math.min(100,S(g).pp+5); } },
+    { id:'leave', label:'Toxunma, koordinatları Yerə göndər', cost:0, energy:'—', visible:'Planet mühafizəsi qorunur.', eco:'yaşıl', hidden:'',
+      science:['Gələcək robot missiyası bölgəni steril şəkildə öyrənə bilər.','COSPAR'], apply:g=>{ S(g).pp=Math.min(100,S(g).pp+2); } }
+ ]}
+];
+function setPanel(g,t){ S(g).panel=t; S(g).k=TUNE.panel[t].k; S(g).panelLoss=TUNE.panel[t].loss; }
+
+/* ===================== HADİSƏLƏR (data) ===================== */
+const EVENTS = {
+ storm:{ title:'Toz fırtınası', goal:'energy', zone:'energy', short:'toz fırtınası başladı',
+   options:[
+    { id:'shed', label:'Qeyri-vacib sistemləri söndür', cost:0, visible:'Bitki işığı 40%-ə endirilir, əhval −3', hidden:'Enerji həyat, O₂ və suya qalır.', apply:g=>{ S(g).shed=1; S(g).mood-=3; } },
+    { id:'full', label:'Tam rejim', cost:0, visible:'Heç nə dəyişmir', hidden:'Bütün sistemlər azalan enerji uğrunda yarışır.' },
+    { id:'eva', label:'EVA ilə panelləri təmizlə', cost:0, visible:'Panel +12%, toz itkisi yarıya, əhval −6, doza +0.5 mSv', hidden:'', apply:g=>{ S(g).eva=1; S(g).mood-=6; S(g).dose+=0.5; } }
+ ]},
+ drill:{ title:'Su buruğu dondu', goal:'water', zone:'water', short:'su buruğu dondu',
+   options:[
+    { id:'kit', label:'Təmir dəsti', cost:0, visible:'1 Sol', req:g=>S(g).kits>0, reqText:'Dəst yoxdur', apply:g=>{ S(g).kits--; S(g).drillDown=g.sol+1; } },
+    { id:'eva', label:'EVA ilə qızdırıb təmir et', cost:0, visible:'4 Sol, əhval −5, doza +0.4 mSv', apply:g=>{ S(g).drillDown=g.sol+4; S(g).mood-=5; S(g).dose+=0.4; } },
+    { id:'parts', label:'Yerdən hissə', cost:12, visible:'10 Sol', apply:g=>{ S(g).drillDown=g.sol+10; } },
+    { id:'wait', label:'Gözlə', cost:0, visible:'18 Sol', apply:g=>{ S(g).drillDown=g.sol+18; } }
+ ]},
+ moxie:{ title:'MOXIE köhnəldi', goal:'air', zone:'air', short:'MOXIE keramikası çatladı',
+   options:[
+    { id:'kit', label:'Təmir dəsti', cost:0, visible:'1 Sol', req:g=>S(g).kits>0, reqText:'Dəst yoxdur', apply:g=>{ S(g).kits--; S(g).moxieDown=g.sol+1; S(g).cycles=0; } },
+    { id:'overhaul', label:'EVA ilə əsaslı təmir', cost:0, visible:'5 Sol, əhval −4, doza +0.3 mSv', apply:g=>{ S(g).moxieDown=g.sol+5; S(g).cycles=0; S(g).mood-=4; S(g).dose+=0.3; } },
+    { id:'candles', label:'Təcili oksigen şamları', cost:10, visible:'+25 kq O₂, 6 Sol təmir', apply:g=>{ S(g).O2=Math.min(TUNE.cap.O2,S(g).O2+25); S(g).moxieDown=g.sol+6; S(g).cycles=0; } }
+ ]},
+ leak:{ title:'Hava sızması', goal:'air', zone:'shelter', short:'hava sızması',
+   options:[
+    { id:'kit', label:'Təmir dəsti ilə yamaq', cost:0, visible:'Dərhal', req:g=>S(g).kits>0, reqText:'Dəst yoxdur', apply:g=>{ S(g).kits--; } },
+    { id:'eva', label:'EVA ilə xaricdən yamaq', cost:0, visible:'Əhval −4, doza +0.4 mSv', apply:g=>{ S(g).mood-=4; S(g).dose+=0.4; } },
+    { id:'isolate', label:'Modulu təcrid et', cost:0, visible:'6 Sol gündə −3 kq O₂, əhval −3', apply:g=>{ S(g).leakUntil=g.sol+6; S(g).mood-=3; } }
+ ]},
+ spe:{ title:'Günəş hissəcik hadisəsi', goal:'all', zone:'shelter', short:'günəş hissəcik hadisəsi',
+   options:[
+    { id:'shelter', label:'Sığınacağa gir (2 Sol)', cost:0, visible:'Doza ×0.25; 2 Sol iş yarıya düşür', apply:g=>{ S(g).shelterUntil=g.sol+2; S(g).dose+=speDose(g)*TUNE.spe.shelterF; } },
+    { id:'work', label:'İşə davam et', cost:0, visible:'Tam doza', apply:g=>{ S(g).dose+=speDose(g); } }
+ ]},
+ co2:{ title:'CO₂ yığılması', goal:'air', zone:'shelter', short:'kabində CO₂ 0.5%-i keçdi',
+   options:[
+    { id:'vent', label:'Kabini havalandır', cost:0, visible:'CO₂ sıfırlanır, −10 kq O₂', apply:g=>{ S(g).co2x=0; S(g).O2=Math.max(0,S(g).O2-10); } },
+    { id:'lioh', label:'Təcili LiOH patronları', cost:8, visible:'CO₂ sıfırlanır, +60 kq tutum', apply:g=>{ S(g).co2x=0; S(g).lioh+=60; S(g).eco+=2; } },
+    { id:'reduce', label:'Fəaliyyəti azalt', cost:0, visible:'10 Sol CO₂/O₂ −20%, iş −15%, əhval −5', apply:g=>{ S(g).reduceUntil=g.sol+10; S(g).mood-=5; } }
+ ]},
+ disease:{ title:'Pythium kök çürüməsi', goal:'food', zone:'food', short:'bitkilərdə kök çürüməsi',
+   options:[
+    { id:'burn', label:'Yandır və yenidən ək', cost:0, visible:'~20 Sol məhsul yenidən böyüyür', apply:g=>{ S(g).planted=g.sol-TUNE.crops.delay+ (S(g).foodSys==='spir'?10:0); S(g).health=1; } },
+    { id:'chem', label:'Bioloji fungisid', cost:6, visible:'60% şansla xilas', hidden:'Uğursuz olarsa məhsul yarıya düşür.',
+      apply:g=>{ if(g.env.u[g.sol].chem>=TUNE.risk.chemOk){ S(g).health*=0.5; addLog(g,'warn','Fungisid kömək etmədi: məhsul yarıya düşdü.',{sig:'chemfail',short:'müalicə uğursuz oldu',goal:'food'}); } else addLog(g,'info','Fungisid uğurlu oldu.'); } },
+    { id:'ignore', label:'Diqqət yetirmə', cost:0, visible:'Pulsuz', hidden:'Məhsul daimi olaraq ×0.5.', apply:g=>{ S(g).health*=0.5; } }
+ ]}
+};
+function speDose(g){ return TUNE.spe[S(g).shelter]; }
+
+/* ===================== ELM vs FƏRZİYYƏ =====================
+   Hər elmi qeydin növü:
+   'fact'  — ölçülmüş / dərc olunmuş məlumat (mənbə ilə yoxlanıla bilər)
+   'est'   — ədəbiyyata əsaslanan mühəndis TƏXMİNİ və ya sadələşdirilmiş model
+   Oyun balansı (qiymətlər, risk ehtimalları, əhval) heç vaxt 'fact' deyil. */
+const SCI_KIND={
+  'G0.inflate':'fact','G0.regolith':'est','G0.lava':'est',
+  'GE1.cheap':'fact','GE1.std':'fact','GE1.hard':'fact',
+  'G1.1.moxie':'fact','G1.1.electro':'fact','G1.1.lox':'est',
+  'G3.1.reserve':'fact','G3.1.none':'fact',
+  'G2.1.ice':'est','G2.1.minerals':'fact','G2.1.wavar':'fact',
+  'G1.2.amine':'fact','G1.2.lioh':'fact','G1.2.bio':'fact',
+  'G3.2.led':'est','G3.2.gh':'est','G3.2.spir':'fact',
+  'G2.2.iss':'fact','G2.2.simple':'est','G2.2.bio':'est',
+  'GE2.battery':'fact','GE2.reactor':'fact','GE2.panels':'est','GE2.none':'fact',
+  'GP.std':'est','GP.water':'est','GP.food':'est',
+  'G3.3.regolith':'fact','G3.3.hydro':'est','G3.3.compost':'est',
+  'G1.3.double':'fact','G1.3.kits':'fact','G1.3.none':'fact',
+  'G2.3.mine':'fact','G2.3.study':'est','G2.3.leave':'est',
+  'ev.storm':'fact','ev.drill':'est','ev.moxie':'est','ev.leak':'est','ev.spe':'fact','ev.co2':'fact','ev.disease':'fact'
+};
+function sciKind(item,o){ return SCI_KIND[item.type==='quest'?item.id+'.'+o.id:'ev.'+item.type]||'est'; }
+/* Simulyasiyanın İŞLƏTDİYİ parametrlərin mənşəyi — dəyərlər birbaşa SCIENCE/TUNE-dan oxunur */
+const PROVENANCE=[
+  ['fact','1 Sol uzunluğu',()=>'24 s 39 dəq ('+SCIENCE.solHours+' s)','NASA Mars Fact Sheet'],
+  ['fact','Günəş enerjisi (atmosfer üstü) Yerə nisbətən',()=>pct(SCIENCE.solar.vsEarth)+'%','NASA Mars Fact Sheet'],
+  ['fact','Atmosfer təzyiqi / CO₂ payı',()=>SCIENCE.mars.pressure_kPa+' kPa / '+pct(SCIENCE.mars.co2Frac)+'%','NASA Mars Fact Sheet'],
+  ['fact','Orta səth temperaturu',()=>SCIENCE.mars.tempMean+'°C','NASA Mars Fact Sheet'],
+  ['fact','Səthdə radiasiya dozası (ölçü)',()=>SCIENCE.rad.surface_mSvSol+' mSv/Sol','Hassler et al. 2014, Science (Curiosity RAD)'],
+  ['fact','Ən güclü ölçülmüş toz fırtınası τ',()=>String(SCIENCE.tau.opportunity2018),'NASA MER/Opportunity, 2018'],
+  ['fact','MOXIE cəmi O₂ / ən yaxşı sürət',()=>SCIENCE.tech.moxieRecord.totalG+' q / '+SCIENCE.tech.moxieRecord.bestGPerH+' q/saat','NASA JPL, MOXIE yekun hesabatı (2023)'],
+  ['fact','ISS su bərpası',()=>pct(SCIENCE.tech.recycleISS)+'%','NASA ISS ECLSS (2023)'],
+  ['fact','Kilopower dizayn gücü (KRUSTY sınağı 2018)',()=>SCIENCE.tech.kilopower_kWe+' kWe ≈ '+SCIENCE.tech.kilopower_kWhSol+' kWh/Sol','NASA Kilopower / KRUSTY'],
+  ['fact','Ekipaj istehlakı (nəfər/Sol): O₂ / CO₂ / kkal',()=>SCIENCE.human.o2+' kq / '+SCIENCE.human.co2+' kq / '+SCIENCE.human.kcal,'NASA BVAD (dizayn bazis dəyərləri)'],
+  ['fact','Su elektrolizi stoxiometriyası (1 kq H₂O)',()=>SCIENCE.tech.waterElec_O2+' kq O₂ + '+SCIENCE.tech.waterElec_H2+' kq H₂','Kimya: 2H₂O → 2H₂ + O₂'],
+  ['fact','Regolitdə perxlorat',()=>SCIENCE.perchlorateFrac.map(v=>(v*100).toFixed(1)).join('–')+'%','Hecht et al. 2009, Science (Phoenix)'],
+  ['est','Panel elektrik çıxışı (aydın hava)',()=>SCIENCE.solar.kWhPerM2Sol+' kWh/m²/Sol','≈20–25% səmərəlilik × səth insolyasiyası — təxmin'],
+  ['est','Tozun panel çıxışına təsiri',()=>'exp(−k·(τ−0.5)), k = '+TUNE.panel.hard.k+'…'+TUNE.panel.cheap.k,'Beer–Lambert sadələşdirməsi — model'],
+  ['est','Miqyaslı MOXIE enerjisi',()=>SCIENCE.tech.moxie_kWhPerKgO2+' kWh/kq O₂','MOXIE məlumatından ekstrapolyasiya — təxmin'],
+  ['est','Su elektrolizinin praktik enerjisi',()=>SCIENCE.tech.waterElec_kWhPerKgH2O+' kWh/kq H₂O','Nəzəri min. ≈4.4 kWh/kq; itkilərlə — təxmin'],
+  ['est','Buz / hidratlı mineral emalı',()=>SCIENCE.tech.ice_kWhPerKg+' / '+SCIENCE.tech.hydrated_kWhPerKg+' kWh/kq','ISRU tədqiqatları — təxmin'],
+  ['est','Sığınacaqda doza (səth / regolit / lava)',()=>TUNE.radRate.inflate+' / '+TUNE.radRate.regolith+' / '+TUNE.radRate.lava+' mSv/Sol','Qoruma modeli — təxmin, ölçü deyil'],
+  ['est','LED bitkiçilik enerjisi',()=>TUNE.crops.led.kwhM2+' kWh/m²/Sol','NASA BVAD diapazonu — təxmin'],
+  ['est','Məhsulun yetişməsi',()=>TUNE.crops.delay+' Sol cücərmə + '+TUNE.crops.ramp+' Sol artım','Sadələşdirilmiş böyümə əyrisi'],
+  ['game','Yaşayış istiliyi (şişirilən / regolit / lava)',()=>TUNE.heat.inflate+' / '+TUNE.heat.regolith+' / '+TUNE.heat.lava+' kWh/Sol','Oyun balansı'],
+  ['game','Büdcə, qiymətlər, ekoloji iz, planet mühafizəsi balları',()=>TUNE.start.B+'M $ başlanğıc','Oyun balansı'],
+  ['game','Qəza ehtimalları (buruq, MOXIE, sızma, xəstəlik)',()=>pct(TUNE.risk.drill*10)/10+'% … '+pct(TUNE.risk.drillLow)+'% / Sol','Oyun balansı — real statistika deyil'],
+  ['game','Günəş hissəcik hadisəsi dozası (sığınacağa görə)',()=>TUNE.spe.inflate+' / '+TUNE.spe.regolith+' / '+TUNE.spe.lava+' mSv','Ssenari dəyəri — real hadisələr çox fərqlidir'],
+  ['game','Fırtına təqvimi (Sol 30–45 və 70–85, τ 3–5)',()=>'seed-ə görə','Prosedur generasiya; real fırtınalar mövsümidir'],
+  ['game','Ekipaj əhvalı modeli',()=>'±'+Math.abs(TUNE.mood.zeroRes)+'/Sol','Oyun balansı']
+];
+
+/* ===================== PROQNOZ MÜHƏRRİKİ =====================
+   Eyni physics() funksiyasını oyunun SURƏTİ üzərində irəli işlədir.
+   Yalnız komandirin BİLDİYİ məlumatdan istifadə edir:
+   – başlamış (elan olunmuş) fırtınalar öz real τ əyrisi ilə,
+   – gələcək fırtınalar və təsadüfi qəzalar daxil EDİLMİR (onları heç kim bilmir),
+   – qalan günlər üçün τ = bugünkü fon τ (persistens proqnozu). */
+function forecastEnv(g){
+  const env=g.env, sol=g.sol, known=env.storms.filter(st=>st.start<=sol), tau=env.tau.slice(), b=env.base[sol];
+  for(let s=sol+1;s<tau.length;s++){ let t=b; for(const st of known) if(s>=st.start&&s<st.start+st.dur) t=env.tau[s]; tau[s]=t; }
+  return {...env,storms:known,tau};
+}
+function project(g,n,item,o){
+  const c=cloneGame(g); c.fast=true; c.noEvents=true; c.queue=[]; c.agenda=[]; c.env=forecastEnv(g); c.log=[];
+  if(o){ c.s.B-=(o.cost||0); if(o.apply) o.apply(c,item); }
+  const end=Math.min(TUNE.sols,g.sol+n);
+  while(!c.over && c.sol<=end){ if(c.sol>0) physics(c); if(c.over) break; if(c.sol===end) break; c.sol++; }
+  const s=c.s, gen=s.gen, dem=s.dem;
+  let firstZero=null; for(const h of c.history){ if(h.sol>g.sol && (h.O2<=0||h.W<=0||h.food<=0)){ firstZero={sol:h.sol,what:h.O2<=0?'O₂':h.W<=0?'Su':'Qida'}; break; } }
+  return { toSol:Math.min(end,c.sol), O2:s.O2, W:s.W, food:s.food, co2:s.co2pct, gen, dem, B:s.B, dose:s.dose, mood:s.mood,
+           fail:c.over&&c.outcome&&c.outcome.key==='fail'?c.outcome.reason:null, firstZero };
+}
+
+/* ===================== MÜHƏRRİK ===================== */
+const txt=(v,g)=>typeof v==='function'?v(g):(v||'');
+function defOf(item){ return item.type==='quest'?item.def:EVENTS[item.type]; }
+const SKIP_OPT={ id:'skip', label:'Heç nə (büdcə çatmır)', cost:0, visible:'Büdcə kifayət etmir', energy:'—', eco:'yaşıl', hidden:'' };
+function optAvail(g,o){ return (!o.cost||o.cost<=g.s.B+1e-9) && (!o.req||o.req(g)); }
+function optionsOf(g,item){ const d=defOf(item); return d.options.some(o=>optAvail(g,o))?d.options:d.options.concat([SKIP_OPT]); }
+function addLog(g,kind,text,extra){ if(g.fast && !(extra&&extra.sig)) return; const e={sol:g.sol,kind,text}; if(extra) Object.assign(e,extra); if(e.sig&&!e.sig.includes('@')) e.sig+='@'+g.sol; if(!g.fast) g.log.push(e); else g.log.push(e); }
+
+function createGame(seed,choices,fast){
+  const st=TUNE.start, env=makeEnv(seed);
+  const g={ seed:seed>>>0, env, fast:!!fast, choices:Object.assign({},choices||{}), used:{}, forced:{}, record:[], sol:0, agenda:null, queue:[], counters:{},
+    history:[], log:[], over:false, outcome:null,
+    s:{ O2:st.O2, co2x:0, W:st.W, food:st.foodSols*CREW_KCAL(), E:st.E, cap:st.cap, B:st.B, mood:st.mood, dose:0, eco:10, pp:100,
+        panel:'std', k:TUNE.panel.std.k, panelLoss:TUNE.panel.std.loss, panelArea:st.panelArea, solarHealth:1,
+        shelter:'inflate', o2src:'', co2sys:'', lioh:st.lioh, waterSrc:'', recycle:'base', foodSys:'', planted:-99, health:1, soil:'', reactor:0, hull:0,
+        kits:st.kits, prio:'std', brine:0, drillDown:0, moxieDown:0, cycles:0, shed:0, eva:0, leakUntil:0, shelterUntil:0, reduceUntil:0, co2Cool:0,
+        zO2:0, zW:0, zF:0, zC:0, f_life:1, f_o2:1, f_water:1, f_food:1, gen:0, dem:0, foodProd:0, o2Net:0, wNet:0, co2pct:0.04 } };
+  pushHist(g,0);
+  addLog(g,'info',`Eniş uğurlu. 4 nəfərlik ekipaj Jezero kraterindədir. Missiya kodu: ${codeFromSeed(g.seed)}.`);
+  return g;
+}
+function pushHist(g,sol){ const s=g.s; g.history.push({sol,O2:s.O2,co2:s.co2pct,W:s.W,food:s.food,E:s.E,cap:s.cap,B:s.B,mood:s.mood,dose:s.dose,eco:s.eco,pp:s.pp,
+  gen:s.gen,dem:s.dem,foodProd:s.foodProd,o2Net:s.o2Net,wNet:s.wNet,tau:g.env.tau[sol],storm:stormIndex(g.env,sol)>=0?1:0,fl:s.f_life,fo:s.f_o2,fw:s.f_water,ff:s.f_food}); }
+
+function buildAgenda(g){
+  const items=g.queue.slice(); g.queue=[];
+  g.env.storms.forEach((st,i)=>{ if(st.start===g.sol){
+    const it={id:'R_storm_'+(i+1),type:'storm',sol:g.sol,text:`Sol ${g.sol}: MRO peyki toz fırtınası təsdiqlədi. Proqnoz: pik τ ≈ ${(st.peak+0.5).toFixed(1)}, təxminən ${st.dur} Sol (Sol ${st.start}–${st.start+st.dur-1}). Panel çıxışı ${pct(Math.exp(-g.s.k*(st.peak)))}%-ə qədər düşəcək.`};
+    addLog(g,'event',it.text,{eventId:it.id,sig:'storm',short:EVENTS.storm.short,goal:'energy'}); g.s.shed=0; g.s.eva=0; items.push(it); } });
+  if(g.env.spe.includes(g.sol)){ g.counters.spe=(g.counters.spe||0)+1; const it={id:'R_spe_'+g.counters.spe,type:'spe',sol:g.sol,
+    text:`Sol ${g.sol}: Günəşdə güclü alışma — proton seli bir neçə saata çatacaq. Qorunmasız dozada +${speDose(g)} mSv gözlənilir.`};
+    addLog(g,'event',it.text,{eventId:it.id,sig:'spe',short:EVENTS.spe.short,goal:'all'}); items.push(it); }
+  for(const q of QUESTS) if(q.sol===g.sol) items.push({id:q.id,type:'quest',def:q,sol:g.sol});
+  return items;
+}
+function prevSameType(g,item){ const m=/^R_([a-z0-9]+)_(\d+)$/.exec(item.id); if(!m) return null; const n=+m[2]; let best=null,bn=-1,any=null;
+  for(const k in g.choices){ const mm=/^R_([a-z0-9]+)_(\d+)$/.exec(k); if(!mm||mm[1]!==m[1]) continue; any=any||g.choices[k]; if(+mm[2]<n&&+mm[2]>bn){bn=+mm[2];best=g.choices[k];} } return best||any; }
+/* mode: 'live' — hər cavabsız elementdə dayanır; 'branch' — yalnız görevlərdə; 'replay' — heç vaxt */
+function resolveOption(g,item,mode){
+  const opts=optionsOf(g,item), find=id=>opts.find(o=>o.id===id), want=g.choices[item.id];
+  if(want){ const o=find(want); if(o&&optAvail(g,o)) return {o,fallback:false}; }
+  if(!want && (mode==='live' || (mode==='branch'&&item.type==='quest'))) return null;
+  const prev=item.type!=='quest'?prevSameType(g,item):null;
+  if(prev){ const o=find(prev); if(o&&optAvail(g,o)) return {o,fallback:true}; }
+  return {o:opts.find(o=>optAvail(g,o)),fallback:true};
+}
+function applyOption(g,item,o,fallback){
+  const def=defOf(item), bBefore=g.s.B, want=g.choices[item.id];
+  // mətnlər QƏRARDAN ƏVVƏLKİ vəziyyətə görə hesablanır (kartda göstərilənlə eyni)
+  const vis=g.fast?'':txt(o.visible,g), hid=g.fast?'':txt(o.hidden,g);
+  g.s.B-=(o.cost||0); if(o.apply) o.apply(g,item);
+  g.used[item.id]=o.id;
+  // İstənilən seçim tətbiq oluna bilmədisə (məs. büdcə çatmır) — bunu gizlətmə, qeyd et
+  if(want && want!==o.id){ const wo=defOf(item).options.find(x=>x.id===want); g.forced[item.id]={sol:g.sol,title:def.title,want,wantLabel:wo?wo.label:want,wantCost:wo?(wo.cost||0):0,got:o.id,gotLabel:o.label,B:bBefore}; }
+  if(!g.fast){
+    g.record.push({id:item.id,type:item.type,sol:g.sol,goal:def.goal,title:def.title,optId:o.id,label:o.label,cost:o.cost||0,visible:vis,hidden:hid,
+      science:o.science||null,sciKind:sciKind(item,o),fallback,bBefore});
+    addLog(g,'decision',(item.type==='quest'?'Görev · ':'Reaksiya · ')+def.title+': '+o.label+(o.cost?` (−${o.cost}M $)`:'')+(fallback?' [avtomatik]':''),{eventId:item.id,goal:def.goal});
+  }
+}
+function step(g,mode){
+  if(g.over) return {over:true};
+  if(!g.agenda) g.agenda=buildAgenda(g);
+  while(g.agenda.length){ const it=g.agenda[0], r=resolveOption(g,it,mode); if(!r) return {pending:it}; applyOption(g,it,r.o,r.fallback); g.agenda.shift(); }
+  if(g.sol>0) physics(g);
+  g.agenda=null;
+  if(g.over) return {over:true,sol:g.sol};
+  g.sol++; return {sol:g.sol-1};
+}
+function advance(g,mode){ for(;;){ const r=step(g,mode); if(r.pending||r.over) return r; } }
+
+function physics(g){
+  const s=g.s, sol=g.sol, env=g.env, T=TUNE, SC=SCIENCE, tau=env.tau[sol], si=stormIndex(env,sol), inStorm=si>=0, crew=SC.crew;
+  // --- enerji istehsalı
+  let dustF=Math.min(1,Math.exp(-s.k*(tau-0.5))); if(inStorm&&s.eva) dustF=Math.min(1,dustF+T.evaBoost);
+  const solar=s.panelArea*SC.solar.kWhPerM2Sol*dustF*s.solarHealth*(s.shelter==='lava'?1-T.lavaCableLoss:1);
+  const gen=solar+(s.reactor?SC.tech.kilopower_kWhSol*(1-T.reactor.cableLoss):0);
+  // --- tələbat (kateqoriyalar)
+  const drillOK=sol>=s.drillDown, moxOK=sol>=s.moxieDown, sheltering=sol<s.shelterUntil, reduce=sol<s.reduceUntil;
+  const dLife=T.heat[s.shelter]+T.eclss+(s.co2sys==='amine'?T.amine.kwh:0);
+  let dO2=0; if(s.o2src==='moxie'&&moxOK) dO2=T.moxie.kg*SC.tech.moxie_kWhPerKgO2; else if(s.o2src==='electro') dO2=T.electro.kg/SC.tech.waterElec_O2*SC.tech.waterElec_kWhPerKgH2O;
+  let dW=T.recycle[s.recycle].kwh;
+  if(s.waterSrc==='ice'&&drillOK) dW+=T.ice.kg*SC.tech.ice_kWhPerKg+T.ice.heater;
+  if(s.waterSrc==='minerals') dW+=T.minerals.kg*SC.tech.hydrated_kWhPerKg;
+  if(s.waterSrc==='wavar') dW+=T.wavar.kwh;
+  if(s.brine) dW+=T.brine.kg*SC.tech.ice_kWhPerKg;
+  const shedF=(inStorm&&s.shed)?0.4:1;
+  let dF=0; if(s.foodSys){ const c=T.crops[s.foodSys]; dF=c.area*c.kwhM2*shedF; }
+  const order={std:['o2','water','food'],water:['water','o2','food'],food:['food','o2','water']}[s.prio];
+  const dem={life:dLife,o2:dO2,water:dW,food:dF}, f={};
+  let avail=gen+s.E;
+  for(const c of ['life',...order]){ const d=dem[c]; f[c]=d>0?Math.min(1,avail/d):1; avail-=d*f[c]; }
+  s.E=Math.min(s.cap,Math.max(0,avail));
+  const demand=dLife+dO2+dW+dF;
+  const pm=(s.mood<25?0.8:1)*(s.co2pct>1?0.7:1)*(sheltering?0.5:1)*(reduce?0.85:1);
+  // --- QİDA
+  let foodProd=0, plantO2=0, gr=0, soilF=1, light=1;
+  if(s.foodSys){ const c=T.crops[s.foodSys];
+    gr=s.foodSys==='spir'?clamp((sol-s.planted-T.crops.spirDelay)/T.crops.spirRamp,0,1):clamp((sol-s.planted-T.crops.delay)/T.crops.ramp,0,1);
+    if(s.soil==='regolith') soilF=T.soil.regolith.f; else if(s.soil==='hydro') soilF=sol<T.soil.hydro.until?1:T.soil.hydro.after; else if(s.soil==='compost') soilF=sol<T.soil.compost.switchSol?T.soil.compost.early:T.soil.compost.late;
+    light=s.foodSys==='gh'?Math.min(1,dustF*1.05):1;
+    foodProd=c.kcal*gr*f.food*shedF*s.health*soilF*light*(s.foodSys==='spir'?1:pm);
+    plantO2=foodProd*T.crops.o2PerKcal + (s.foodSys==='spir'?c.o2*gr*f.food*shedF:0);
+  }
+  s.food=Math.max(0,s.food+foodProd-CREW_KCAL());
+  // --- SU
+  let wProd=0;
+  if(s.waterSrc==='ice'&&drillOK) wProd+=T.ice.kg*f.water*pm;
+  if(s.waterSrc==='minerals') wProd+=T.minerals.kg*f.water*pm;
+  if(s.waterSrc==='wavar') wProd+=T.wavar.kg*f.water;
+  if(s.brine) wProd+=T.brine.kg*f.water*pm;
+  const rc=T.recycle[s.recycle]; let r=rc.r; if(s.recycle==='bio') r+=rc.bonus*(s.foodSys&&s.foodSys!=='spir'?Math.min(1,foodProd/T.crops[s.foodSys].kcal):0);
+  const use=T.waterUse*crew, recovered=use*r*(s.recycle==='base'?1:f.water);
+  let wExtra=(s.foodSys?T.crops.cropWater:0)+(s.soil==='regolith'&&s.foodSys?T.soil.regolith.water:0);
+  // elektroliz
+  let o2Prod=0, wElec=0;
+  if(s.o2src==='electro'){ wElec=Math.min(T.electro.kg/SC.tech.waterElec_O2*f.o2, Math.max(0,s.W+wProd+recovered-use-wExtra)); o2Prod=wElec*SC.tech.waterElec_O2; }
+  const W0=s.W; s.W=clamp(s.W+wProd+recovered-use-wExtra-wElec,0,T.cap.W); s.wNet=s.W-W0;
+  // --- HAVA
+  if(s.o2src==='moxie'&&moxOK) o2Prod=T.moxie.kg*f.o2;
+  const o2Use=SC.human.o2*crew*(reduce?0.8:1);
+  const O0=s.O2; s.O2=clamp(s.O2+o2Prod+plantO2-o2Use-(sol<s.leakUntil?3:0),0,T.cap.O2); s.o2Net=s.O2-O0;
+  const co2In=SC.human.co2*crew*(reduce?0.8:1);
+  let rem=plantO2*44/32;
+  if(s.co2sys==='amine') rem+=T.amine.cap*f.life;
+  if(s.co2sys==='bio') rem+=T.bioScrub;
+  const need=Math.max(0,s.co2x+co2In-rem);
+  if(need>0&&s.lioh>0){ const x=Math.min(need,T.lioh.rate,s.lioh); s.lioh-=x; rem+=x; }
+  s.co2x=Math.max(0,s.co2x+co2In-rem); s.co2pct=0.04+s.co2x*T.co2PctPerKg;
+  // --- radiasiya, ekologiya
+  s.dose+=T.radRate[s.shelter]*(sheltering?0.3:1)+(s.foodSys==='gh'?T.crops.gh.rad:0);
+  if(s.waterSrc==='minerals') s.eco+=0.12;
+  if(s.soil==='regolith'&&s.foodSys) s.eco+=T.soil.regolith.eco;
+  s.eco=clamp(s.eco,0,100); s.pp=clamp(s.pp,0,100);
+  // --- əhval
+  const daysO=s.O2/Math.max(0.1,o2Use), daysW=s.W/use, daysF=s.food/CREW_KCAL();
+  let dm=T.mood.base; const mnD=Math.min(daysO,daysW,daysF);
+  if(mnD<=0) dm+=T.mood.zeroRes; else if(mnD<5) dm+=T.mood.lowRes;
+  if(f.life<0.8) dm+=T.mood.cold;
+  if(s.co2pct>1) dm+=T.mood.co2Hi; else if(s.co2pct>0.5) dm+=T.mood.co2Mid;
+  if(s.foodSys==='spir') dm+=T.mood.monotony;
+  if(inStorm) dm+=T.mood.storm;
+  s.mood=clamp(s.mood+dm,0,100);
+  const prevF={fl:s.f_life,fw:s.f_water,fo:s.f_o2,ff:s.f_food};
+  s.f_life=f.life; s.f_o2=f.o2; s.f_water=f.water; s.f_food=f.food; s.gen=gen; s.dem=demand; s.foodProd=foodProd;
+  // UI üçün ətraflı göstəricilər (fizikaya təsir etmir)
+  s.det={ solar, reactorGen:gen-solar, dustF, tau, dLife, dO2, dW, dF, order, gr, soilF, light, shed:shedF<1, plantO2, plantCO2:plantO2*44/32,
+          o2Prod, o2Use, co2In, co2Rem:rem, wProd, recovered, recycleR:r, wExtra, wElec, use, cropWater:s.foodSys?T.crops.cropWater:0,
+          washWater:(s.soil==='regolith'&&s.foodSys)?T.soil.regolith.water:0, drillOK, moxOK };
+  // --- xəbərdarlıqlar
+  const minF=Math.min(f.o2,f.water,f.food);
+  if(!g.fast && minF<0.65 && Math.min(prevF.fo,prevF.fw,prevF.ff)>=0.65) addLog(g,'warn',`Enerji çatışmazlığı: istehsal ${Math.round(gen)} kWh, tələbat ${Math.round(demand)} kWh (O₂ ${pct(f.o2)}%, su ${pct(f.water)}%, qida ${pct(f.food)}%).`,{sig:'power',short:`enerji çatmadı (istehsal ${Math.round(gen)}/${Math.round(demand)} kWh)`,goal:'energy'});
+  const warnRes=(key,days,name,goal)=>{ if(g.fast) return; const fl='w_'+key; if(days<5&&days>0&&!s[fl]){ s[fl]=1; addLog(g,'warn',`${name} ehtiyatı ${days.toFixed(1)} Sol-a çatır!`,{sig:'low'+key,short:`${name.toLowerCase()} 5 Sol-dan az qaldı`,goal}); } if(days>=8) s[fl]=0; };
+  warnRes('O',daysO,'Oksigen','air'); warnRes('W',daysW,'Su','water'); warnRes('F',daysF,'Qida','food');
+  if(inStorm){ const st=env.storms[si]; if(sol===st.start+st.dur-1){ const loss=s.panelLoss*(s.eva?0.5:1)*Math.min(1,st.peak/4);
+      if(loss>0.001){ s.solarHealth*=(1-loss); if(!g.fast) addLog(g,'warn',`Fırtına bitdi: panellər ${pct(loss)}% güc itirdi (indi ${pct(s.solarHealth)}%).`,{sig:'panel',short:`panellər ${pct(loss)}% güc itirdi`,goal:'energy'}); }
+      else addLog(g,'info','Fırtına bitdi. Panellər tam gücdə.'); s.shed=0; s.eva=0; } }
+  pushHist(g,sol);
+  // --- uğursuzluq
+  s.zO2=s.O2<=0?s.zO2+1:0; s.zW=s.W<=0?s.zW+1:0; s.zF=s.food<=0?s.zF+1:0; s.zC=s.co2pct>=T.fail.co2?s.zC+1:0;
+  let fail=null, fgoal=null;
+  if(s.zO2>=T.fail.O2){fail=`Oksigen ${T.fail.O2} Sol sıfırda qaldı`;fgoal='air';}
+  else if(s.zC>=T.fail.co2Sols){fail=`Kabində CO₂ ${T.fail.co2}%-i keçdi — ekipaj zəhərlənmə həddində`;fgoal='air';}
+  else if(s.zW>=T.fail.W){fail=`Su ${T.fail.W} Sol sıfırda qaldı`;fgoal='water';}
+  else if(s.zF>=T.fail.food){fail=`Qida ${T.fail.food} Sol sıfırda qaldı — aclıq`;fgoal='food';}
+  else if(s.mood<=0){fail='Ekipajın əhvalı sıfıra düşdü — missiya dayandırıldı';fgoal='all';}
+  if(fail){ addLog(g,'warn',fail+'. Koloniya evakuasiya edildi.',{sig:'fail',short:'koloniya evakuasiya edildi',goal:fgoal}); finish(g,fail,fgoal); return; }
+  if(sol>=T.sols){ finish(g,null); return; }
+  if(g.noEvents) return;   // proqnoz rejimi: gələcək təsadüfi qəzaları "bilmirik"
+  // --- gələcək hadisələr (növbəti Sol-un əvvəlində)
+  const u=env.u[sol];
+  if(s.waterSrc==='ice'&&drillOK){ const low=f.water<T.risk.drillF, risk=low?T.risk.drillLow:T.risk.drill;
+    if(u.water<risk){ queueEvent(g,'drill',()=> low?`Sol ${sol}: ${inStorm?`Fırtına τ=${tau.toFixed(1)} → panel çıxışı ${pct(dustF)}%-ə düşdü → `:''}su sisteminə enerji ${pct(f.water)}% → buruq qızdırıcısı söndü → −63°C-də su buruğun içində dondu.${s.o2src==='electro'?' Elektroliz də su ehtiyatından asılıdır.':''}`
+      :`Sol ${sol}: Abraziv regolit buruğun möhürünü aşındırdı → buruq ilişdi.`); } }
+  if(s.o2src==='moxie'&&moxOK){ if(f.o2<T.risk.moxieF){ s.cycles++; }
+    const risk=T.risk.moxieBase+T.risk.moxieCycle*s.cycles;
+    if(u.oxy<risk) queueEvent(g,'moxie',()=>`Sol ${sol}: ${s.cycles?`${s.cycles} soyuma-qızma dövrü (enerji kəsintiləri${inStorm?', fırtına':''}) → 800°C-lik keramika hüceyrəsində çat → `:''}MOXIE dayandı.`); }
+  if(sol>=2){ const risk=T.risk.leak[s.shelter]*(s.hull?T.risk.hullF:1);
+    if(u.leak<risk){ const loss=s.shelter==='inflate'?20:12; s.O2=Math.max(0,s.O2-loss);
+      queueEvent(g,'leak',()=>`Sol ${sol}: ${s.shelter==='inflate'?'Mikrometeorit şişirilən qabığı deşdi':'Modul tikişində mikroçat'} → kabin təzyiqi düşdü → ${loss} kq O₂ itirildi.`); } }
+  if(s.co2pct>T.risk.co2Event && sol>=s.co2Cool){ s.co2Cool=sol+8;
+    queueEvent(g,'co2',()=>`Sol ${sol}: Kabində CO₂ ${s.co2pct.toFixed(2)}% → ${s.co2sys==='bio'?'bitkilər CO₂-ni udmağa çatmır → ':s.co2sys==='lioh'||!s.co2sys?'LiOH patronları tükənib → ':'süzgəcə enerji çatmır → '}ekipajda baş ağrısı.`); }
+  if(s.foodSys&&s.foodSys!=='spir'&&foodProd>0){ const risk=T.risk.disease*(s.foodSys==='led'?T.risk.diseaseLED:1)*(s.soil==='hydro'?T.risk.diseaseHydro:1);
+    if(u.crop<risk) queueEvent(g,'disease',()=>`Sol ${sol}: ${s.foodSys==='led'?'Hidroponik məhlulda':'Torpaqda'} Pythium oomiset kök çürüməsi aşkarlandı → bitkilər solur.`); }
+}
+function queueEvent(g,type,textFn){ const text=g.fast?'':textFn(); g.counters[type]=(g.counters[type]||0)+1; const id='R_'+type+'_'+g.counters[type];
+  g.queue.push({id,type,sol:g.sol+1,text}); addLog(g,'event',text,{eventId:id,sig:type,short:EVENTS[type].short,goal:EVENTS[type].goal}); }
+
+/* ===================== NƏTİCƏ VƏ BAL ===================== */
+function goalStatus(g){
+  const h=g.history, last=h[h.length-1], a=h[Math.max(0,h.length-11)], n=Math.max(1,h.length-1-h.indexOf(a));
+  const o2net=(last.O2-a.O2)/n, wnet=(last.W-a.W)/n;
+  let fp=0,c=0; for(let i=Math.max(1,h.length-10);i<h.length;i++){ fp+=h[i].foodProd; c++; } fp/=Math.max(1,c);
+  const T=TUNE.goal, fg=g.failGoal;
+  const air = fg==='air'?'crisis' : (o2net>=-0.05&&last.O2>=T.airO2&&last.co2<0.5)?'self' : (last.O2>0?'dep':'crisis');
+  const water = fg==='water'?'crisis' : (wnet>=-0.5&&last.W>=T.waterW)?'self' : (last.W>0?'dep':'crisis');
+  const food = fg==='food'?'crisis' : (fp>=T.foodRatio*CREW_KCAL())?'self' : (last.food>0?'dep':'crisis');
+  return {air,water,food,o2net,wnet,foodRatio:fp/CREW_KCAL()};
+}
+function score(g){
+  const gs=goalStatus(g), s=g.s, pts={self:20,dep:10,crisis:0};
+  const surv=g.failGoal?clamp((g.sol)/TUNE.sols,0,1):1;
+  const air=pts[gs.air]*surv, water=pts[gs.water]*surv, food=pts[gs.food]*surv;
+  const health=clamp(15*(0.55*clamp(1-s.dose/150,0,1)+0.45*s.mood/100),0,15)*surv;
+  const ecology=clamp(15*(0.5*(1-s.eco/100)+0.5*s.pp/100),0,15);
+  const budget=g.failGoal?0:clamp(10*s.B/50,0,10);
+  const total=Math.round(air+water+food+health+ecology+budget);
+  return {air:r1(air),water:r1(water),food:r1(food),health:r1(health),ecology:r1(ecology),budget:r1(budget),total};
+}
+const GS_NAME={self:'Özünütəminetmə',dep:'Asılı',crisis:'Böhran'};
+function finish(g,failReason,failGoal){
+  g.over=true; g.failGoal=failGoal||null;
+  const gs=goalStatus(g), sc=score(g);
+  let key,title,text;
+  if(failReason){ key='fail'; title='Missiyanın uğursuzluğu'; text=`Sol ${g.sol}: ${failReason}. Ekipaj qayıdış aparatı ilə orbitə evakuasiya edildi.`; }
+  else if(gs.air==='self'&&gs.water==='self'&&gs.food==='self'){ key='thrive'; title='Koloniyanın inkişafı'; text='Hava, su və qida — üçü də özünütəminetmədədir. Jezero bazası Yerdən asılı olmadan yaşaya bilir.'; }
+  else { key='critical'; title='Kritik vəziyyət'; text='Koloniya 100 Sol sağ qaldı, amma bəzi məqsədlər Yerdən gələn ehtiyatlardan asılıdır.'; }
+  g.outcome={key,title,text,goals:gs,score:sc,sol:g.sol,reason:failReason||null};
+}
+
+/* Təmiz funksiya — qrafikadan asılı deyil */
+function simulate(seed,choices,fast){ const g=createGame(seed,choices,fast); let k=0; while(!g.over&&k++<10000) step(g,'replay'); return {history:g.history,log:g.log,outcome:g.outcome,record:g.record,used:g.used,forced:g.forced,game:g}; }
+
+/* ===================== OPTİMİZATOR (Web Worker-də işləyir) ===================== */
+function cloneGame(g){ return { ...g, s:{...g.s}, choices:{...g.choices}, used:{...g.used}, forced:{...g.forced}, counters:{...g.counters}, queue:g.queue.slice(), history:g.history.slice(), log:g.log.slice(), record:[], agenda:g.agenda?g.agenda.slice():null }; }
+function optimize(seed,eventPolicy,onProgress){
+  const best={eff:null,eco:null,safe:null}; let leaves=0, fails=0, pruned=0;
+  const root=createGame(seed,eventPolicy||{},true);
+  const consider=(g)=>{ leaves++; if(g.outcome.key==='fail'){ fails++; return; }
+    const sc=g.outcome.score, rec={used:{...g.used},score:sc,outcome:g.outcome.key,goals:g.outcome.goals,dose:g.s.dose,eco:g.s.eco,pp:g.s.pp};
+    if(!best.eff||sc.total>best.eff.score.total) best.eff=rec;
+    const ecoV=sc.ecology*10+sc.total*0.1; if(!best.eco||ecoV>best.eco.v) best.eco={...rec,v:ecoV};
+    const safeV=-g.s.dose+sc.total*0.05; if(!best.safe||safeV>best.safe.v) best.safe={...rec,v:safeV}; };
+  const nQ=QUESTS.length; let done=0, top=0;
+  function dfs(g,depth){
+    const r=advance(g,'branch');
+    if(r.over){ if(g.outcome.key==='fail'&&Object.keys(g.used).filter(k=>!k.startsWith('R_')).length<nQ) pruned++; consider(g); return; }
+    const it=r.pending, opts=optionsOf(g,it).filter(o=>optAvail(g,o));
+    for(const o of opts){ const c=cloneGame(g); c.choices[it.id]=o.id; dfs(c,depth+1); if(depth===0){ done++; if(onProgress) onProgress(done/opts.length,leaves); } }
+  }
+  dfs(root,0);
+  return {best,leaves,fails,pruned};
+}
+
+</script>
+
+<!-- ======================= OYUN (Phaser + DOM UI) ======================= -->
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const minus=n=>String(n).replace('-','−');
+const fmt=(v,d=0)=>minus((+v).toFixed(d));
+const kcalSols=k=>k/CREW_KCAL();
+const GC={air:'#9cd0f0',water:'#4fc2b4',food:'#8fc85a',energy:'#f0b84a',all:'#e0a070'};
+const WORLD_W=3400, GROUND=470, SC=3;
+const QS=new URLSearchParams(location.search), TEST=QS.has('auto');
+let G=null, SCN=null, AUTO=false, SPEED=1, PAUSED=false, BLOCK=true, DAYT=0.3, ENDED=false;
+
+/* ---------- Elmi qeydlər hadisələr üçün ---------- */
+const EVENT_SCI={
+  storm:['2018-ci il PEDE toz fırtınası bütün planeti bürüdü; τ 10.8-ə çatdı və Opportunity roveri enerjisiz qalaraq susdu.','NASA MER/Opportunity'],
+  drill:['Phoenix aparatı 2010 qışında CO₂ buzunun ağırlığı altında panellərini itirdi və bir daha oyanmadı. Buruqda suyun donma sürəti isə oyun təxminidir.','NASA Phoenix (2010)'],
+  moxie:['MOXIE-nin bərk oksid elektrolizörü ≈800°C-də işləyir; hər söndürüb-yandırma keramikada istilik gərginliyi yaradır.','NASA JPL, MOXIE yekunu (2023); Hoffman et al. 2022, Science Advances'],
+  leak:['Kabin 101 kPa, çöl 0.6 kPa — 1 mm-lik deşik belə gündə kiloqramlarla hava itirir.','NASA ISS sızma təcrübəsi'],
+  spe:['Curiosity RAD 2017-də bir günəş hadisəsindən səthdə əlavə doza ölçdü; qalın qoruyucu təbəqə dozanı bir neçə dəfə azaldır.','Curiosity RAD'],
+  co2:['CO₂ 0.5%-dən yuxarı baş ağrısı, 1%-dən yuxarı koqnitiv zəiflik yaradır; ISS-də hədd ≈0.4%-dir.','NASA SMAC'],
+  disease:['Pythium oomiseti hidroponik sistemlərdə su ilə sürətlə yayılır — bütün köklər eyni məhluldadır.','Hidroponika fitopatologiyası']
+};
+const EV_SPEAKER={storm:'murad',drill:'murad',moxie:'murad',leak:'cmd',spe:'kamran',co2:'kamran',disease:'aysel'};
+
+/* =================== BOOT: piksel teksturalar =================== */
+function px(g,c,x,y,w=1,h=1){ g.fillStyle(c,1); g.fillRect(x,y,w,h); }
+function mapTex(scene,key,rows,pal){
+  const g=scene.make.graphics({x:0,y:0,add:false});
+  rows.forEach((r,y)=>{ for(let x=0;x<r.length;x++){ const c=r[x]; if(c!=='.'&&pal[c]!=null) px(g,pal[c],x,y); } });
+  g.generateTexture(key,rows[0].length,rows.length); g.destroy();
+}
+function drawTex(scene,key,w,h,fn){ const g=scene.make.graphics({x:0,y:0,add:false}); fn(g); g.generateTexture(key,w,h); g.destroy(); }
+const ASTRO={
+ idle:["...hhhh...","..hhhhhh..","..hvvvvh..","..hvvwvh..","...hhhh...","..ssaass..",".pssssss..",".psssssss.",".pssssssss","..ssssss.s","..ssssss..","..aaaaaa..","..ss..ss..","..ss..ss..","..ss..ss..","..bb..bb.."],
+ walk1:["...hhhh...","..hhhhhh..","..hvvvvh..","..hvvwvh..","...hhhh...","..ssaass..",".pssssss..",".psssssss.",".pssssssss","..ssssss.s","..ssssss..","..aaaaaa..","..ss...ss.",".ss....ss.",".ss.....s.",".bb.....bb"],
+ walk2:["...hhhh...","..hhhhhh..","..hvvvvh..","..hvvwvh..","...hhhh...","..ssaass..",".pssssss..",".psssssss.",".pssssssss","..ssssss.s","..ssssss..","..aaaaaa..","...ssss...","...ss.ss..","...ss.ss..","...bb.bb.."],
+ work1:["...hhhh..t","..hhhhhhts","..hvvvvhs.","..hvvwvhs.","...hhhhs..","..ssaass..",".pssssss..",".psssssss.",".psssssss.","..ssssss..","..ssssss..","..aaaaaa..","..ss..ss..","..ss..ss..","..ss..ss..","..bb..bb.."],
+ work2:["...hhhh...","..hhhhhh..","..hvvvvh..","..hvvwvh..","...hhhh...","..ssaass..",".pssssss..",".psssssssss",".pssssssstt","..ssssss.t","..ssssss..","..aaaaaa..","..ss..ss..","..ss..ss..","..ss..ss..","..bb..bb.."],
+ sleep:["................","..hhh...........",".hvvvhssssssssbb",".hvwvhsaasssssbb","..hhhppppppp....","................"]
+};
+const PORTRAIT=["....hhhhhhhh....","..hhhhhhhhhhhh..",".hhhvvvvvvvvhhh.",".hhvrrrrrrrrvhh.","hhvrrffffffrrvhh","hhvrffffffffrvhh","hhvfefffffeffvhh","hhvffffnfffffvhh","hhvfffffffffvhh.","hhvffmmmmmffvhh.",".hhvffffffffvhh.",".hhhvvvvvvvvhhh.","..hhhhhhhhhhhh..","..sssaaaaaasss..",".sssssaaaassssss","ssssssssssssssss"];
+const FACE={cmd:{f:0xd9a37a,r:0x3a2414},murad:{f:0xc98d62,r:0x1c120c},aysel:{f:0xe6b48e,r:0x6a2a14},kamran:{f:0xb7845e,r:0x9a9a9a}};
+
+class BootScene extends Phaser.Scene{
+  constructor(){ super('Boot'); }
+  create(){
+    for(const c of CREW){
+      const pal={h:c.suit,v:0x2a3f5a,w:0xbfe0ff,s:c.suit,a:c.accent,p:0x8a8070,b:0x3a3028,t:0xcfcfcf};
+      for(const f in ASTRO) mapTex(this,`a_${c.id}_${f}`,ASTRO[f],pal);
+      const fp=FACE[c.id]; mapTex(this,`port_${c.id}`,PORTRAIT,{h:c.suit,v:0x9ab8d0,r:fp.r,f:fp.f,e:0x1a1a1a,n:Phaser.Display.Color.ValueToColor(fp.f).darken(15).color,m:0x8a4a3a,s:c.suit,a:c.accent});
+      this.anims.create({key:`walk_${c.id}`,frames:[{key:`a_${c.id}_walk1`},{key:`a_${c.id}_walk2`}],frameRate:6,repeat:-1});
+      this.anims.create({key:`work_${c.id}`,frames:[{key:`a_${c.id}_work1`},{key:`a_${c.id}_work2`}],frameRate:4,repeat:-1});
+    }
+    const D=(k,w,h,fn)=>drawTex(this,k,w,h,fn);
+    D('lander',26,30,g=>{ px(g,0x9a9a92,4,22,18,4); px(g,0xd8d4c8,6,8,14,14); px(g,0xb8b4a8,8,2,10,6); px(g,0x2a3f5a,10,10,6,4); px(g,0x6a6a62,2,26,4,4); px(g,0x6a6a62,20,26,4,4); px(g,0xe08a2e,6,18,14,2); });
+    D('hab_inflate',44,22,g=>{ g.fillStyle(0xe8e0cc,1); g.fillEllipse(22,22,44,40); px(g,0xc8bea6,0,18,44,4); px(g,0xb0a68e,10,6,1,14); px(g,0xb0a68e,22,2,1,18); px(g,0xb0a68e,34,6,1,14); px(g,0x2a3f5a,6,14,4,3); px(g,0x2a3f5a,38,14,4,3); });
+    D('hab_regolith',48,24,g=>{ g.fillStyle(0xa8643c,1); g.fillEllipse(24,24,48,44); for(let y=4;y<24;y+=4) for(let x=(y%8?0:3);x<48;x+=6) px(g,0x8a4e2c,x,y,5,1); px(g,0xd8d0bc,20,16,8,8); px(g,0x2a3f5a,22,18,4,3); });
+    D('lava_mouth',60,26,g=>{ g.fillStyle(0x3a1d10,1); g.fillEllipse(30,26,60,48); g.fillStyle(0x0d0705,1); g.fillEllipse(30,26,44,34); px(g,0x5a2e18,0,22,60,4); });
+    D('hab_cave',40,16,g=>{ px(g,0xd8d0bc,0,2,40,14); px(g,0xb8ae98,0,12,40,4); for(let i=4;i<40;i+=8) px(g,0x2a3f5a,i,5,4,3); });
+    for(const [k,c,fr] of [['panel_cheap',0x4a5868,0x9aa0a0],['panel_std',0x2c4a6a,0xc0c0b8],['panel_hard',0x1f3d64,0xe8c060]])
+      D(k,18,14,g=>{ px(g,0x5a5048,8,8,2,6); px(g,fr,0,2,18,7); px(g,c,1,3,16,5); px(g,0x6a90b8,1,3,16,1); for(let x=1;x<17;x+=4) px(g,0x1a2a3a,x,3,1,5); });
+    D('battery',16,12,g=>{ px(g,0x5a5a56,0,2,16,10); px(g,0x3a3a36,1,3,14,8); px(g,0xf0b84a,2,5,4,4); px(g,0xf0b84a,7,5,4,4); px(g,0x8a8a86,3,0,2,2); px(g,0x8a8a86,11,0,2,2); });
+    D('reactor',18,30,g=>{ px(g,0xd8d0bc,6,4,6,26); px(g,0xb8ae98,6,26,6,4); for(let i=0;i<5;i++) px(g,0x9a9080,0,8+i*4,18,2); px(g,0xe8c060,7,0,4,4); });
+    D('moxie',18,16,g=>{ px(g,0xd0c8b4,0,4,18,12); px(g,0xa8a08c,0,4,18,2); px(g,0xe8902f,3,8,6,4); px(g,0x5a5048,12,0,3,4); px(g,0x2a3f5a,11,8,5,3); });
+    D('electro',18,18,g=>{ g.fillStyle(0x9ac0d8,1); g.fillRect(1,4,6,14); g.fillRect(10,2,7,16); px(g,0x6a90a8,1,4,6,2); px(g,0x6a90a8,10,2,7,2); px(g,0xd8d4c8,6,10,5,2); });
+    D('lox',22,24,g=>{ for(let i=0;i<3;i++){ px(g,0xdde6ee,i*7+1,4,6,20); px(g,0xb0c0cc,i*7+1,4,6,2); px(g,0x3a6aa0,i*7+2,12,4,2); } });
+    D('amine',14,16,g=>{ px(g,0xb8b4a8,0,2,14,14); px(g,0x7a7a72,2,4,10,2); px(g,0x7a7a72,2,8,10,2); px(g,0x7a7a72,2,12,10,2); });
+    D('lioh',14,8,g=>{ px(g,0xc8a060,0,0,14,8); px(g,0x8a6a3a,0,3,14,1); px(g,0xffffff,5,4,4,2); });
+    D('bioscrub',12,18,g=>{ px(g,0xd8d4c8,0,0,12,18); px(g,0x5aa048,1,2,10,14); px(g,0x8ad070,3,4,2,2); px(g,0x8ad070,7,9,2,2); });
+    D('drill',18,34,g=>{ g.lineStyle(2,0xc9a46e,1); g.lineBetween(1,34,9,2); g.lineBetween(17,34,9,2); g.lineBetween(9,2,9,34); g.lineBetween(4,22,14,22); px(g,0x6a5a48,5,28,8,6); px(g,0xe8902f,7,0,4,3); });
+    D('excav',28,16,g=>{ px(g,0xe8b040,2,6,16,6); px(g,0x3a3028,0,12,20,4); g.lineStyle(2,0xa88030,1); g.lineBetween(16,7,24,1); g.lineBetween(24,1,27,9); px(g,0x5a4a3a,23,8,5,4); });
+    D('wavar',14,22,g=>{ px(g,0xd0c8b4,4,4,6,18); px(g,0x9ac0d8,0,0,14,6); px(g,0x6a90a8,1,1,12,1); px(g,0x6a90a8,1,3,12,1); });
+    D('recycle',18,14,g=>{ px(g,0xc8c0ac,0,2,18,12); px(g,0x4fc2b4,2,5,5,6); px(g,0x4fc2b4,11,5,5,6); px(g,0x8a8a86,7,7,4,2); });
+    D('recycle_bio',18,14,g=>{ px(g,0xc8c0ac,0,4,18,10); px(g,0x5aa048,1,0,4,6); px(g,0x5aa048,7,1,4,5); px(g,0x5aa048,13,0,4,6); px(g,0x4fc2b4,2,8,14,3); });
+    D('ledfarm',40,20,g=>{ px(g,0xd8d4c8,0,2,40,18); px(g,0xb8b0a0,0,2,40,2); for(let i=0;i<4;i++) px(g,0xb070e0,3+i*9,6,7,8); px(g,0x2a3f5a,0,16,40,1); });
+    D('greenhouse',46,24,g=>{ g.fillStyle(0xbfe0e8,0.45); g.fillEllipse(23,24,46,44); g.lineStyle(1,0xe8f0f0,0.9); g.strokeEllipse(23,24,46,44); px(g,0x8a8a86,0,22,46,2); for(let x=6;x<44;x+=8) px(g,0xe8f0f0,x,8,1,14); });
+    D('spir',18,24,g=>{ for(let i=0;i<4;i++){ px(g,0xd8d4c8,i*5,0,3,24); px(g,0x3aa050,i*5,2,3,20); px(g,0x7ad06a,i*5+1,4,1,6); } });
+    D('plant',6,8,g=>{ px(g,0x3a8a30,2,2,2,6); px(g,0x5ab048,0,0,2,3); px(g,0x5ab048,4,1,2,3); px(g,0x7ad06a,2,0,2,2); });
+    D('soil',26,5,g=>{ px(g,0x6a3a1e,0,0,26,5); px(g,0x8a5030,0,0,26,1); });
+    D('nutr',10,14,g=>{ px(g,0xe8e0cc,1,2,8,12); px(g,0x5a8ad0,2,6,6,6); px(g,0x8a8a86,3,0,4,2); });
+    D('compost',12,10,g=>{ px(g,0x5a4028,0,2,12,8); px(g,0x7a5a38,0,2,12,2); px(g,0x5aa048,3,0,2,2); });
+    D('barrel',6,8,g=>{ px(g,0xe8c040,0,0,6,8); px(g,0x2a2a2a,1,3,4,2); });
+    D('pit',20,6,g=>{ g.fillStyle(0x2a140a,1); g.fillEllipse(10,3,20,6); });
+    D('crate',10,8,g=>{ px(g,0xb08a50,0,0,10,8); px(g,0x7a5a30,0,3,10,1); px(g,0x7a5a30,4,0,1,8); });
+    D('toolbox',10,7,g=>{ px(g,0xd84a3a,0,2,10,5); px(g,0x5a5a5a,3,0,4,2); });
+    D('hull',48,6,g=>{ px(g,0x9aa0a8,0,0,48,6); for(let x=2;x<48;x+=6) px(g,0x6a7078,x,1,1,4); });
+    D('brine_rig',16,22,g=>{ px(g,0xd8d4c8,4,0,8,6); px(g,0x9a9a92,7,6,2,16); px(g,0xe0a040,2,18,12,4); });
+    D('tent',20,12,g=>{ g.fillStyle(0xf0f0f0,1); g.fillTriangle(0,12,10,0,20,12); px(g,0x4fc2b4,8,6,4,6); });
+    D('beacon',6,20,g=>{ px(g,0x8a8a86,2,4,2,16); px(g,0xea5a42,0,0,6,4); });
+    D('frost',20,8,g=>{ px(g,0xe8f6ff,0,0,20,3); for(let x=1;x<20;x+=3) px(g,0xd0ecff,x,3,1,3+(x%2)*2); });
+    D('scaffold',18,22,g=>{ g.lineStyle(1,0xe8c060,1); g.strokeRect(1,1,16,20); g.lineBetween(1,1,17,21); g.lineBetween(17,1,1,21); g.lineBetween(1,11,17,11); });
+    D('sun',10,10,g=>{ g.fillStyle(0xfff4dc,1); g.fillCircle(5,5,4); });
+    D('dot',2,2,g=>{ px(g,0xffffff,0,0,2,2); });
+    D('crystal',8,10,g=>{ px(g,0xbfeaf0,3,0,2,10); px(g,0x9ad0e0,0,4,3,6); px(g,0xe8fbff,5,3,3,7); });
+    this.scene.start('Title');
+  }
+}
+
+/* =================== TITLE =================== */
+class TitleScene extends Phaser.Scene{
+  constructor(){ super('Title'); }
+  create(){
+    const g=this.add.graphics(); g.fillGradientStyle(0x3a1d10,0x3a1d10,0xd09060,0xd09060,1); g.fillRect(0,0,1280,720);
+    g.fillStyle(0x6a3218,1); g.fillRect(0,520,1280,200);
+    const r=mulberry32(7); g.fillStyle(0x8a4424,1); g.beginPath(); g.moveTo(0,520); for(let x=0;x<=1280;x+=40) g.lineTo(x,470+r()*40); g.lineTo(1280,520); g.closePath(); g.fillPath();
+    this.add.image(1000,200,'sun').setScale(4).setAlpha(.9);
+    for(let i=0;i<4;i++) this.add.image(380+i*60,520,`a_${CREW[i].id}_idle`).setOrigin(.5,1).setScale(4);
+    this.add.image(250,520,'lander').setOrigin(.5,1).setScale(4);
+    const seedIn=$('tSeed'); seedIn.value=codeFromSeed((Math.random()*4294967296)>>>0);
+    $('tNew').onclick=()=>{ seedIn.value=codeFromSeed((Math.random()*4294967296)>>>0); };
+    $('tStart').onclick=()=>{ CREW[0].name=($('tName').value.trim()||'Komandir'); startMission(seedFromCode(seedIn.value),{},false); };
+    if(TEST) setTimeout(()=>startMission(seedFromCode(QS.get('seed')||'TEST1'),{},true),300);
+  }
+}
+function startMission(seed,choices,auto){
+  G=createGame(seed,choices); AUTO=auto; ENDED=false; DAYT=0.3; BLOCK=true; closeInfo();
+  $('title').hidden=true; $('end').hidden=true; $('cine').hidden=true;
+  ['hud','goals','qlog','follow'].forEach(i=>$(i).hidden=false);
+  if(TEST) setSpeed(10);
+  const game=window.GAME; ['Title','End','Game','UI'].forEach(k=>{ if(game.scene.isActive(k)) game.scene.stop(k); });
+  game.scene.start('Game'); game.scene.start('UI');
+}
+
+/* =================== GAME (dünya) =================== */
+class GameScene extends Phaser.Scene{
+  constructor(){ super('Game'); }
+  create(){
+    SCN=this; this.st={}; this.plants=[]; this.pits=[]; this.barrels=[];
+    const cam=this.cameras.main; cam.setBounds(0,0,WORLD_W,720); cam.setBackgroundColor('#1a0d08');
+    this.sky=this.add.graphics().setScrollFactor(0).setDepth(-100);
+    this.stars=this.add.graphics().setScrollFactor(0).setDepth(-99);
+    const sr=mulberry32(G.seed^0x5a); for(let i=0;i<120;i++){ this.stars.fillStyle(0xffffff,0.4+sr()*0.6); this.stars.fillRect(sr()*1280,sr()*360,sr()<0.2?2:1,sr()<0.2?2:1); }
+    this.sun=this.add.image(0,0,'sun').setScrollFactor(0).setDepth(-95).setScale(3);
+    this.glow=this.add.graphics().setScrollFactor(0).setDepth(-96);
+    // uzaq təpələr (paralaks)
+    const hills=(sf,col,base,amp,seed,depth)=>{ const h=this.add.graphics().setScrollFactor(sf).setDepth(depth); const r=mulberry32(seed); h.fillStyle(col,1); h.beginPath(); h.moveTo(0,GROUND);
+      let y=base; for(let x=0;x<=WORLD_W*sf+1400;x+=40){ y=Phaser.Math.Clamp(y+(r()-0.5)*amp,base-amp*2,base+amp); h.lineTo(x,y); } h.lineTo(WORLD_W*sf+1400,GROUND); h.closePath(); h.fillPath(); return h; };
+    this.h1=hills(0.25,0x9a5a36,GROUND-110,30,G.seed^1,-90); this.h2=hills(0.5,0x7e4226,GROUND-55,22,G.seed^2,-89);
+    // yer və yeraltı
+    const gr=this.add.graphics().setDepth(-80);
+    gr.fillStyle(0x8a4a28,1); gr.fillRect(0,GROUND,WORLD_W,250);
+    gr.fillStyle(0x6e3a1e,1); gr.fillRect(0,GROUND+18,WORLD_W,240);
+    gr.fillStyle(0x562c16,1); gr.fillRect(0,GROUND+80,WORLD_W,200);
+    gr.fillStyle(0x3e1f10,1); gr.fillRect(0,GROUND+170,WORLD_W,100);
+    const rr=mulberry32(G.seed^3); for(let i=0;i<260;i++){ gr.fillStyle([0x7a3e20,0x9a5a34,0x4a2614][i%3],1); gr.fillRect(rr()*WORLD_W,GROUND+4+rr()*240,2+rr()*6,2+rr()*3); }
+    // buz layı (su zonasının altında)
+    gr.fillStyle(0xbfdcea,0.85); gr.fillRect(1500,GROUND+120,700,26); gr.fillStyle(0xe8f6ff,0.8); gr.fillRect(1500,GROUND+120,700,4);
+    // lava tuneli (sığınacaq altında)
+    gr.fillStyle(0x140906,1); gr.fillEllipse(430,GROUND+110,520,110); gr.fillStyle(0x24110a,1); gr.fillRect(170,GROUND+150,520,8);
+    // duzlu buz mağarası
+    gr.fillStyle(0x140906,1); gr.fillEllipse(2950,GROUND+140,420,120);
+    for(let i=0;i<12;i++) this.add.image(2780+i*30,GROUND+190-(i%3)*6,'crystal').setOrigin(.5,1).setScale(2).setDepth(-79).setAlpha(.85);
+    this.add.text(2950,GROUND+100,'DUZLU BUZ',{fontFamily:'Pixelify Sans',fontSize:'16px',color:'#bfeaf0'}).setOrigin(.5).setDepth(-78).setAlpha(.7);
+    // zona lövhələri
+    const zl={shelter:['SIĞINACAQ','#e0a070'],energy:['ENERJİ','#f0b84a'],air:['HAVA','#9cd0f0'],water:['SU','#4fc2b4'],food:['QİDA','#8fc85a'],explore:['KƏŞFİYYAT','#e0a070']};
+    for(const k in zl){ const x=ZONES[k]; this.add.rectangle(x,GROUND+232,150,24,0x1a0d08,0.7).setDepth(-70); this.add.text(x,GROUND+232,zl[k][0],{fontFamily:'Pixelify Sans',fontSize:'18px',color:zl[k][1]}).setOrigin(.5).setDepth(-69); }
+    this.clickable(this.add.image(260,GROUND+2,'lander').setOrigin(.5,1).setScale(SC).setDepth(5),'lander');
+    // ekipaj
+    this.crew=CREW.map((c,i)=>{ const sp=this.add.sprite(300+i*30,GROUND+2,`a_${c.id}_idle`).setOrigin(.5,1).setScale(SC).setDepth(20+i);
+      const nm=this.add.text(0,0,c.id==='cmd'?CREW[0].name:c.name,{fontFamily:'Pixelify Sans',fontSize:'13px',color:'#efdcb8',backgroundColor:'rgba(20,11,7,.6)',padding:{x:3,y:1}}).setOrigin(.5,1).setDepth(30).setAlpha(.85);
+      this.clickable(sp,'crew',c.id);
+      return {def:c,sp,nm,state:'idle',tx:null,task:null,timer:1000+i*700,home:ZONES.shelter}; });
+    this.zzz=this.add.text(0,0,'Z z z',{fontFamily:'Pixelify Sans',fontSize:'18px',color:'#bfd8ff'}).setOrigin(.5).setDepth(31).setVisible(false);
+    this.fx=this.add.graphics().setScrollFactor(0).setDepth(60);
+    this.dust=[]; const dr=mulberry32(11); for(let i=0;i<360;i++) this.dust.push({x:dr()*1280,y:dr()*720,s:dr(),v:0.5+dr()});
+    this.cable=this.add.graphics().setDepth(4);
+    this.lights=this.add.graphics().setDepth(40);
+    // kamera: izlə + sürüşdür
+    this.following=true; cam.startFollow(this.crew[0].sp,true,0.08,0.08,0,120);
+    this.input.on('pointermove',p=>{ if(!p.isDown) return; const dx=p.x-p.prevPosition.x; if(Math.abs(dx)>0){ if(this.following){ cam.stopFollow(); this.following=false; } cam.scrollX-=dx; } });
+    $('follow').onclick=()=>this.follow();
+    this.events.once('shutdown',()=>{ SCN=null; });
+    flow.begin();
+  }
+  clickable(obj,key,extra){ const sys=key==='crew'?'crew':SYS_OF(key); if(!sys) return;
+    obj.setInteractive({useHandCursor:true,pixelPerfect:false});
+    obj.on('pointerover',()=>obj.setAlpha(0.85)); obj.on('pointerout',()=>obj.setAlpha(1));
+    obj.on('pointerup',p=>{ if(Math.abs(p.upX-p.downX)<8) openInfo(sys,extra); }); }
+  floatText(x,rows){ rows.forEach((r,i)=>{ const t=this.add.text(x,GROUND-170-i*24,r.float,{fontFamily:'Pixelify Sans',fontSize:'19px',color:r.good?'#9fe07a':'#ff7a60',stroke:'#1a0d08',strokeThickness:5}).setOrigin(.5).setDepth(70).setAlpha(0);
+    this.tweens.add({targets:t,alpha:1,y:t.y-10,duration:300,delay:300+i*180}); this.tweens.add({targets:t,y:t.y-70,alpha:0,delay:3200+i*180,duration:1600,onComplete:()=>t.destroy()}); }); }
+  follow(){ this.following=true; this.cameras.main.startFollow(this.crew[0].sp,true,0.08,0.08,0,120); }
+  panTo(x){ const cam=this.cameras.main; cam.stopFollow(); this.following=false; cam.pan(x,360,TEST?100:900,'Sine.easeInOut',true); return wait(TEST?120:950); }
+  crewOf(id){ return this.crew.find(c=>c.def.id===id); }
+  task(id,x,dur){ const c=this.crewOf(id); if(c){ c.task={x,dur}; if(c.state==='sleep'){ c.state='idle'; c.sp.setVisible(true); } } }
+  place(key,tex,x,opts={}){
+    if(this.st[key]) { this.st[key].destroy(); }
+    const y=opts.y!=null?opts.y:GROUND+2, sp=this.add.image(x,y,tex).setOrigin(.5,1).setScale(SC).setDepth(opts.depth||6);
+    this.st[key]=sp; this.clickable(sp,key);
+    if(opts.instant) return sp;
+    sp.setScale(SC,0.01).setAlpha(0.3);
+    const sc=this.add.image(x,y,'scaffold').setOrigin(.5,1).setScale(SC*(sp.width/18),SC*(sp.height/22)).setDepth(7).setAlpha(.9);
+    this.tweens.add({targets:sp,scaleY:SC,alpha:1,duration:1400,ease:'Back.easeOut',delay:300,onComplete:()=>sc.destroy()});
+    for(let i=0;i<10;i++){ const d=this.add.circle(x+(Math.random()-0.5)*sp.width*SC,y-4,4+Math.random()*6,0xc08050,0.7).setDepth(8);
+      this.tweens.add({targets:d,y:y-30-Math.random()*40,x:d.x+(Math.random()-0.5)*60,alpha:0,scale:2,duration:1200+Math.random()*600,onComplete:()=>d.destroy()}); }
+    return sp;
+  }
+  /* Seçimə uyğun qurğunu qur */
+  build(id,opt,instant){
+    const s=G.s, I={instant}, Z=ZONES, wk=(ids,x)=>{ if(!instant) ids.forEach((c,i)=>this.task(c,x+i*24-12,3500)); };
+    switch(id){
+      case 'G0':
+        if(opt==='inflate') this.place('hab','hab_inflate',Z.shelter,I);
+        else if(opt==='regolith') this.place('hab','hab_regolith',Z.shelter,I);
+        else { this.place('hab','lava_mouth',Z.shelter,I); this.place('habcave','hab_cave',Z.shelter,{...I,y:GROUND+150,depth:3}); }
+        wk(['cmd','murad'],Z.shelter); break;
+      case 'GE1': for(let i=0;i<8;i++) this.place('panel'+i,'panel_'+opt,Z.energy-210+i*56,{...I,depth:5}); wk(['murad','cmd'],Z.energy); break;
+      case 'G1.1': this.place('o2',opt==='moxie'?'moxie':opt==='electro'?'electro':'lox',Z.air-60,I); wk(['murad'],Z.air-60); break;
+      case 'G3.1': if(opt==='reserve'){ for(let i=0;i<4;i++) this.place('crate'+i,'crate',150+i*34,{...I}); } break;
+      case 'G2.1': this.place('wsrc',opt==='ice'?'drill':opt==='minerals'?'excav':'wavar',Z.water-80,I); wk(['murad','cmd'],Z.water-80); break;
+      case 'G1.2': this.place('co2',opt==='amine'?'amine':opt==='lioh'?'lioh':'bioscrub',Z.air+70,I); wk(['kamran'],Z.air+70); break;
+      case 'G3.2': if(opt==='led') this.place('farm','ledfarm',Z.food,I); else if(opt==='gh') this.place('farm','greenhouse',Z.food,I); else this.place('farm','spir',Z.food,I);
+        this.plants.forEach(p=>p.destroy()); this.plants=[];
+        if(opt!=='spir') for(let i=0;i<8;i++){ const p=this.add.image(Z.food-50+i*14,GROUND-4,'plant').setOrigin(.5,1).setScale(SC*0.8,0.01).setDepth(opt==='gh'?5:7); this.clickable(p,'plant'); this.plants.push(p); }
+        wk(['aysel'],Z.food); break;
+      case 'G2.2': this.place('recyc',opt==='bio'?'recycle_bio':'recycle',Z.water+90,I); wk(['murad'],Z.water+90); break;
+      case 'GE2': if(opt==='battery') this.place('batt','battery',Z.energy+260,I);
+        else if(opt==='reactor'){ this.place('reactor','reactor',WORLD_W-90,I); this.cable.clear(); this.cable.lineStyle(2,0xe8c060,0.8); this.cable.lineBetween(Z.energy+200,GROUND+6,WORLD_W-90,GROUND+6); }
+        else if(opt==='panels') for(let i=0;i<4;i++) this.place('panelx'+i,'panel_'+s.panel,Z.energy+260+i*56,{...I,depth:5});
+        wk(['murad','cmd'],opt==='reactor'?WORLD_W-160:Z.energy+260); break;
+      case 'G3.3': this.place('soil',opt==='regolith'?'soil':opt==='hydro'?'nutr':'compost',Z.food+150,I); if(opt==='regolith') this.place('bar0','barrel',Z.food+190,I); wk(['aysel'],Z.food+150); break;
+      case 'G1.3': if(opt==='double') this.place('hull','hull',Z.shelter,{...I,y:GROUND-4,depth:7}); else if(opt==='kits') this.place('tools','toolbox',Z.shelter+90,I); wk(['murad'],Z.shelter); break;
+      case 'G2.3': this.place('brine',opt==='mine'?'brine_rig':opt==='study'?'tent':'beacon',Z.explore,I); wk(['aysel','kamran'],Z.explore); break;
+    }
+  }
+  react(type,opt){ const Z=ZONES;
+    if(type==='storm'&&opt==='eva'){ this.task('murad',Z.energy-100,5000); this.task('cmd',Z.energy+60,5000); }
+    if(type==='drill') this.task('murad',Z.water-80,opt==='kit'?2500:6000);
+    if(type==='moxie') this.task('murad',Z.air-60,4000);
+    if(type==='leak') this.task('murad',Z.shelter+40,3000);
+    if(type==='disease') this.task('aysel',Z.food,5000);
+    if(type==='spe') this.crew.forEach(c=>c.task={x:Z.shelter+(Math.random()-0.5)*40,dur:4000});
+  }
+  rebuildAll(){ // "Bu yolu izlə" və test üçün: mövcud seçimlərə görə ani qurulum
+    for(const r of G.record) if(r.type==='quest') this.build(r.id,r.optId,true);
+  }
+  update(time,dtRaw){
+    if(!G) return;
+    const dt=Math.min(100,dtRaw), speed=PAUSED?0:SPEED;
+    if(!BLOCK && !ENDED && speed>0){ DAYT+=dt*speed/6000; if(DAYT>=1){ DAYT-=1; flow.solEnd(); } }
+    const s=G.s, sol=Math.min(100,G.sol), tau=G.env.tau[sol]||0.5, k=Phaser.Math.Clamp((tau-0.45)/3.5,0,1);
+    const light=Math.max(0,Math.sin(Math.PI*(DAYT-0.25)/0.5)), day=DAYT>0.25&&DAYT<0.75;
+    // səma
+    const C=Phaser.Display.Color, mixc=(a,b,t)=>{ const x=C.Interpolate.ColorWithColor(C.ValueToColor(a),C.ValueToColor(b),100,Math.round(t*100)); return C.GetColor(x.r,x.g,x.b); };
+    let top=mixc(0x0b0710,0xc4935f,light), bot=mixc(0x2a1612,0xe6c29a,Math.min(1,light*1.3));
+    top=mixc(top,0x4a2a1a,k*0.8); bot=mixc(bot,0x7a4a2c,k*0.8);
+    this.sky.clear(); this.sky.fillGradientStyle(top,top,bot,bot,1); this.sky.fillRect(0,0,1280,GROUND+10);
+    this.stars.setAlpha(Math.max(0,1-light*3)*(1-k));
+    const sx=60+(DAYT-0.2)/0.6*1160, sy=GROUND-30-light*330;
+    this.sun.setPosition(sx,sy).setVisible(DAYT>0.2&&DAYT<0.8).setAlpha(1-k*0.85);
+    this.glow.clear(); if(DAYT>0.2&&DAYT<0.8){ const blue=Math.max(0,0.45-light)*2*(1-k); // gün batımı MAVİ
+      for(let i=6;i>0;i--){ this.glow.fillStyle(0x8fb8e8,blue*0.09*i); this.glow.fillCircle(sx,sy,18+i*22); } }
+    // toz və gecə örtüyü
+    this.fx.clear(); const n=Math.round(20+k*340), wind=0.02+k*0.5;
+    for(let i=0;i<n;i++){ const p=this.dust[i]; p.x+=wind*p.v*dt*speed*0.15+wind*p.v*dt*0.1; p.y+=Math.sin(time/600+i)*0.2; if(p.x>1280) p.x-=1280;
+      this.fx.fillStyle(0xd09868,(0.2+0.5*p.s)*(0.3+k)); this.fx.fillRect(p.x,p.y,1+p.s*2*(0.5+k),1+p.s); }
+    this.fx.fillStyle(0x6e3e22,k*0.45); this.fx.fillRect(0,0,1280,720);
+    this.fx.fillStyle(0x0a0614,Math.max(0,0.55-light*0.9)); this.fx.fillRect(0,0,1280,720);
+    // vəziyyət vizualları
+    this.lights.clear();
+    const hab=this.st.hab; if(hab){ const flick=(s.f_life<0.8||(s.E<10&&s.gen<s.dem))&&Math.sin(time/90)>0; const red=s.co2pct>0.5;
+      const lx=hab.x, ly=hab.y-hab.height*SC*0.35;
+      this.lights.fillStyle(red?0xff3030:0xffd070,flick?0.15:(red?0.9:0.8)); for(let i=-1;i<=1;i++) this.lights.fillRect(lx+i*30-4,ly,8,6); }
+    const ws=this.st.wsrc; if(ws&&s.waterSrc==='ice'){ const fr=sol<s.drillDown; ws.setTint(fr?0xcfe8ff:0xffffff);
+      if(fr&&!this.frost){ this.frost=this.add.image(ws.x,ws.y-ws.height*SC*0.4,'frost').setScale(SC).setDepth(9); } if(!fr&&this.frost){ this.frost.destroy(); this.frost=null; }
+      this.lights.fillStyle(fr?0xff3030:(s.f_water<0.65?0xffb030:0x7ad06a),1); this.lights.fillRect(ws.x-3,ws.y-ws.height*SC-8,6,6); }
+    const o2=this.st.o2; if(o2&&s.o2src==='moxie'){ const dn=sol<s.moxieDown; this.lights.fillStyle(dn?0xff3030:(s.f_o2<0.9?0xffb030:0x7ad06a),1); this.lights.fillRect(o2.x+12,o2.y-o2.height*SC-6,6,6); o2.setTint(dn?0x9a8a80:0xffffff); }
+    if(this.plants.length&&s.foodSys){ const gr=Phaser.Math.Clamp((sol-s.planted-TUNE.crops.delay+ (DAYT))/TUNE.crops.ramp,0,1);
+      const sick=s.health<1, tint=sick?0xd8c040:(s.f_food<0.6?0x8a9a60:0xffffff);
+      this.plants.forEach((p,i)=>{ p.scaleY=SC*0.8*Math.max(0.05,gr*(0.8+0.2*Math.sin(i))); p.setTint(tint); }); }
+    const nPits=Math.min(10,Math.floor(s.eco/10)); while(this.pits.length<nPits){ const i=this.pits.length; this.pits.push(this.add.image(ZONES.water-260+((i*197)%700),GROUND+6,'pit').setOrigin(.5,.5).setScale(SC).setDepth(3)); }
+    const nB=s.eco>30?Math.min(8,Math.floor((s.eco-30)/8)+1):0; while(this.barrels.length<nB){ const i=this.barrels.length; this.barrels.push(this.add.image(ZONES.explore-260+i*20,GROUND+2,'barrel').setOrigin(.5,1).setScale(SC).setDepth(5)); }
+    // ekipaj davranışı: idle → walk_to → work → return → sleep
+    const night=!day && DAYT>0.8 || DAYT<0.2, anySleep=[];
+    for(const c of this.crew){
+      const sp=c.sp, mv=0.09*Math.min(speed||0,4)*dt;
+      if(night&&!c.task){ if(Math.abs(sp.x-c.home)>8){ c.tx=c.home; c.state='walk'; } else { c.state='sleep'; } }
+      else if(c.state==='sleep'){ c.state='idle'; }
+      if(c.task&&c.state!=='work'){ c.tx=c.task.x; c.state='walk'; }
+      if(!night&&!c.task&&c.state==='idle'){ c.timer-=dt*Math.max(1,speed); if(c.timer<0){ const zones={cmd:['shelter','energy','air','water','food','explore'],murad:['energy','air','water'],aysel:['food','food','water','explore'],kamran:['shelter','food','air']}[c.def.id];
+          const z=zones[Math.floor(Math.random()*zones.length)]; c.tx=ZONES[z]+(Math.random()-0.5)*200; c.state='walk'; c.timer=3000+Math.random()*5000; } }
+      if(c.state==='walk'&&c.tx!=null){ const d=c.tx-sp.x; if(Math.abs(d)<=Math.max(2,mv)){ sp.x=c.tx; c.tx=null;
+          if(c.task){ c.state='work'; c.workLeft=c.task.dur; } else c.state=night?'sleep':'idle'; }
+        else { sp.x+=Math.sign(d)*Math.max(mv,speed?0.6:0); sp.setFlipX(d<0); } }
+      if(c.state==='work'){ c.workLeft-=dt*Math.max(1,speed); if(c.workLeft<=0){ c.task=null; c.state='idle'; c.timer=800; } }
+      // vizual
+      sp.setVisible(c.state!=='sleep'); c.nm.setVisible(c.state!=='sleep');
+      if(c.state==='walk'){ sp.play(`walk_${c.def.id}`,true); }
+      else if(c.state==='work'){ sp.play(`work_${c.def.id}`,true); }
+      else { sp.stop(); sp.setTexture(`a_${c.def.id}_idle`); }
+      if(c.state==='sleep') anySleep.push(c);
+      c.nm.setPosition(sp.x,sp.y-sp.height*SC-4);
+    }
+    this.zzz.setVisible(anySleep.length>0).setPosition(ZONES.shelter+60,GROUND-90+Math.sin(time/400)*6);
+    // hab lava tunelindədirsə, gecə ekipaj tunelə enir (vizual sadələşdirmə)
+  }
+}
+
+/* =================== UI scene (DOM HUD idarəsi) =================== */
+class UIScene extends Phaser.Scene{
+  constructor(){ super('UI'); }
+  create(){ this.acc=0; renderHUD(); }
+  update(t,dt){ this.acc+=dt; if(this.acc>200){ this.acc=0; renderHUD(); } }
+}
+function setSpeed(v){ if(v===0){ PAUSED=!PAUSED; } else { SPEED=v; PAUSED=false; }
+  document.querySelectorAll('#speed button').forEach(b=>{ const s=+b.dataset.s; b.classList.toggle('on', s===0?PAUSED:(!PAUSED&&s===SPEED)); }); }
+document.querySelectorAll('#speed button').forEach(b=>b.onclick=()=>setSpeed(+b.dataset.s));
+$('qtoggle').onclick=()=>{ $('qlog').classList.toggle('collapsed'); $('qtoggle').textContent=$('qlog').classList.contains('collapsed')?'▸':'▾'; };
+
+function lastH(){ return G.history[G.history.length-1]; }
+function renderHUD(){
+  if(!G) return; const s=G.s, h=lastH(), sol=Math.min(100,G.sol), tau=G.env.tau[sol]||0.5, inStorm=stormIndex(G.env,sol)>=0;
+  const light=Math.max(0,Math.sin(Math.PI*(DAYT-0.25)/0.5));
+  $('hSol').textContent=String(sol).padStart(3,'0')+' / 100';
+  $('hTau').textContent=tau.toFixed(2)+(inStorm?' ▲':''); $('hTauBox').classList.toggle('storm',inStorm);
+  // Toz fırtınası gündüzü soyudur, gecəni isti saxlayır (toz IR şüalandırır) → sutkalıq amplituda daralır
+  const dk=Phaser.Math.Clamp((tau-0.5)/4,0,1), tMin=SCIENCE.mars.tempNight+20*dk, tMax=SCIENCE.mars.tempDay-25*dk; $('hTemp').textContent=fmt(tMin+(tMax-tMin)*light)+'°C';
+  $('hB').textContent=Math.round(s.B)+'M $';
+  const crewO2=SCIENCE.human.o2*SCIENCE.crew, useW=TUNE.waterUse*SCIENCE.crew;
+  const card=(goal,name,val,net,unit,days,extra,frac)=>{ const st=days<5?'var(--red)':(net<0&&days<20)?'var(--yel)':'var(--grn)';
+    return `<div class="gcard" style="--c:${GC[goal]};--st:${st}"><h4>${name}<i></i></h4><div class="gval">${val}</div>
+      <div class="gsub"><span class="${net<0?'neg':'pos'}">${net>=0?'+':''}${fmt(net,1)} ${unit}/Sol</span><span>${days>=999?'∞':fmt(Math.min(days,999))} Sol-a çatır</span></div>${extra||''}<div class="gbar"><i style="width:${Math.min(100,frac*100)}%"></i></div></div>`; };
+  const o2Days=s.o2Net<0?s.O2/-s.o2Net:999, wDays=s.wNet<0?s.W/-s.wNet:999, fNet=s.foodProd-CREW_KCAL(), fDays=fNet<0?s.food/-fNet:999;
+  $('goals').innerHTML=
+    card('air','HAVA',`${fmt(s.O2,1)} kq O₂`,s.o2Net,'kq',o2Days,`<div class="gsub"><span>CO₂ kabin</span><span class="${s.co2pct>0.5?'neg':''}">${s.co2pct.toFixed(2)}%</span></div>`,s.O2/TUNE.cap.O2)+
+    card('water','SU',`${fmt(s.W)} kq`,s.wNet,'kq',wDays,'',s.W/1500)+
+    card('food','QİDA',`${fmt(kcalSols(s.food),1)} Sol-luq`,fNet/CREW_KCAL(),'Sol-luq',fDays,`<div class="gsub"><span>Məhsul</span><span>${fmt(s.foodProd)} / ${CREW_KCAL()} kkal</span></div>`,kcalSols(s.food)/90)+
+    `<div class="mini"><span style="color:var(--energy)">Enerji istehsal / tələbat</span><b>${fmt(s.gen)} / ${fmt(s.dem)} kWh</b>
+     <span>Batareya</span><b>${fmt(s.E)} / ${s.cap} kWh</b>
+     <span>Radiasiya (cəmi)</span><b class="${s.dose>SCIENCE.rad.warn_mSv?'w':''}">${fmt(s.dose,1)} mSv</b>
+     <span>Ekoloji iz</span><b class="${s.eco>40?'w':''}">${fmt(s.eco)}/100</b>
+     <span>Planet mühafizəsi</span><b class="${s.pp<70?'w':''}">${fmt(s.pp)}/100</b>
+     <span>Ekipaj əhvalı</span><b class="${s.mood<30?'w':''}">${fmt(s.mood)}</b>
+     <span>Təmir dəsti</span><b>${s.kits}</b></div>`;
+  if(INFO){ renderHUD.ic=(renderHUD.ic||0)+1; if(renderHUD.ic%3===0) renderInfo(); }
+  if(renderHUD.logLen!==G.log.length||renderHUD.rec!==G.record.length){ renderHUD.logLen=G.log.length; renderHUD.rec=G.record.length; renderQLog(); }
+}
+function renderQLog(){
+  const groups=['air','water','food','energy','all'], out=[];
+  for(const gk of groups){ const items=[];
+    for(const q of QUESTS.filter(q=>q.goal===gk)){ const r=G.record.find(x=>x.id===q.id); items.push(r?`<div class="qi ok"><span>✓</span><span><b>${esc(q.title)}</b>: ${esc(r.label)}</span></div>`:`<div class="qi wait"><span>·</span><span>Sol ${q.sol}: ${esc(q.title)}</span></div>`); }
+    for(const e of G.log.filter(e=>e.sig&&e.goal===gk&&e.kind!=='info')) items.push(`<div class="qi bad"><span>✗</span><span>Sol ${e.sol}: ${esc(e.short)}</span></div>`);
+    if(items.length) out.push(`<div class="qg" style="--c:${GC[gk]}"><h5>${GOALS[gk].name}</h5>${items.join('')}</div>`); }
+  $('qbody').innerHTML=out.join('');
+}
+
+/* =================== GÖREV AXINI =================== */
+let portCache={};
+function portrait(id){ if(!portCache[id]) portCache[id]=window.GAME.textures.getBase64(`port_${id}`); return portCache[id]; }
+function crewName(id){ const c=CREW.find(c=>c.id===id); return c.id==='cmd'?CREW[0].name:c.name; }
+async function say(id,text){
+  const d=$('dialog'); d.hidden=false; $('dPort').src=portrait(id); const c=CREW.find(c=>c.id===id);
+  $('dWho').innerHTML=`${esc(crewName(id))}<small>${esc(c.role)}</small>`;
+  let i=0, skip=false, done=false; const el=$('dSay'); el.textContent='';
+  await new Promise(res=>{
+    const tick=()=>{ if(skip){ el.textContent=text; return fin(); } i+=2; el.textContent=text.slice(0,i); if(i>=text.length) return fin(); setTimeout(tick,AUTO?10:22); };
+    const fin=()=>{ done=true; if(AUTO) setTimeout(res,TEST?50:900); else d.onclick=()=>{ d.onclick=null; res(); }; };
+    d.onclick=()=>{ if(!done) skip=true; }; tick();
+  });
+  d.hidden=true;
+}
+async function banner(kick,title,goal){ const b=$('banner'); b.innerHTML=`<div class="bx" style="--c:${GC[goal]}"><small>${kick}</small><b>${esc(title)}</b></div>`; b.hidden=false; await wait(TEST?100:1600); b.hidden=true; }
+function chooseCard(item,def,preset){
+  return new Promise(res=>{
+    const isQ=item.type==='quest', m=$('cards'), opts=optionsOf(G,item);
+    // PROQNOZ: hər seçim üçün əsl physics() oyunun surətində irəli işlədilir
+    const H=isQ?20:10, P={}; for(const o of opts) if(optAvail(G,o)) P[o.id]=project(G,H,item,o);
+    const best={}, keys={O2:1,W:1,food:1,bal:1,dose:-1}; // dose: az = yaxşı
+    for(const id in P){ const p=P[id]; p.bal=p.gen-p.dem; for(const k in keys) if(best[k]==null||p[k]*keys[k]>best[k]*keys[k]) best[k]=p[k]; }
+    const nP=Object.keys(P).length;
+    const projHtml=o=>{ const p=P[o.id]; if(!p) return '';
+      const c=(k,v)=>nP>1&&Math.abs(p[k]-best[k])<1e-6?'good':(p[k]<=0&&k!=='bal'?'bad':'');
+      return `<span class="proj"><span class="hd">PROQNOZ · SOL ${p.toSol}</span>
+        <span>O₂</span><b class="${c('O2')}">${fmt(p.O2,1)} kq</b><span>Su</span><b class="${c('W')}">${fmt(p.W)} kq</b>
+        <span>Qida</span><b class="${c('food')}">${fmt(kcalSols(p.food),1)} Sol-luq</b><span>Enerji balansı</span><b class="${c('bal')}${p.bal<0?' bad':''}">${p.bal>=0?'+':''}${fmt(p.bal)} kWh/Sol</b><span>Cəmi doza</span><b class="${c('dose')}">${fmt(p.dose,1)} mSv</b>
+        ${p.fail?`<span class="warn">⚠ ${esc(p.fail)}</span>`:p.firstZero?`<span class="warn">⚠ ${p.firstZero.what} Sol ${p.firstZero.sol}-də bitir</span>`:''}</span>`; };
+    m.innerHTML=`<div class="cardsbox" style="--c:${GC[def.goal]}"><div class="kick">${isQ?'GÖREV · '+GOALS[def.goal].name:'GÖZLƏNİLMƏZ HADİSƏ'} · SOL ${String(G.sol).padStart(3,'0')}</div><h2>${esc(def.title)}</h2>
+      ${!isQ?`<div class="cause">${esc(item.text)}</div>`:''}
+      <div class="cards">${opts.map(o=>{ const av=optAvail(G,o), why=!av?(o.req&&!o.req(G)?o.reqText:'Büdcə çatmır'):'';
+        return `<button class="card" data-o="${o.id}" ${av?'':'disabled'}><span class="t">${esc(o.label)}</span>
+          <span class="row"><span class="cost">${o.cost?o.cost+'M $':'pulsuz'}</span>${o.eco?`<span class="eco ${o.eco}">EKO: ${o.eco}</span>`:''}</span>
+          ${o.energy?`<span class="en">⚡ ${esc(txt(o.energy,G))}</span>`:''}<span class="vis">${esc(txt(o.visible,G))}</span>${why?`<span class="why">${why}</span>`:''}${projHtml(o)}</button>`; }).join('')}</div>
+      <p class="fine" style="margin:6px 0 0">Proqnoz simulyasiyanın öz fizikası ilə ${H} Sol irəli hesablanır, yalnız bildiyin məlumatla: elan olunmuş fırtınalar daxildir; gələcək fırtınalar, təsadüfi qəzalar və sonrakı görevlər daxil deyil. Yaşıl — seçimlər arasında ən yaxşısı.</p></div>`;
+    m.hidden=false;
+    if(AUTO&&!preset){ const f=opts.find(o=>optAvail(G,o)); preset=f.id; }
+    if(preset){ const b=m.querySelector(`[data-o="${preset}"]`); if(b) b.classList.add('pick'); setTimeout(()=>{ m.hidden=true; res(preset); },TEST?60:1300); return; }
+    m.querySelectorAll('.card').forEach(b=>b.onclick=()=>{ m.hidden=true; res(b.dataset.o); });
+  });
+}
+const KIND_LABEL={fact:'✓ ÖLÇÜLMÜŞ FAKT',est:'≈ TƏXMİN / MODEL',game:'OYUN BALANSI'};
+function kindBadge(k){ return k?`<span class="kind ${k}">${KIND_LABEL[k]}</span>`:''; }
+/* Elm vs fərziyyə paneli: simulyasiyanın işlətdiyi CANLI parametrlər, növünə görə */
+function openSciPanel(){
+  const m=$('sciPanel'), grp=k=>PROVENANCE.filter(r=>r[0]===k).map(([k,name,val,src])=>`<tr><td>${kindBadge(k)}</td><td>${esc(name)}</td><td>${esc(val())}</td><td>${esc(src)}</td></tr>`).join('');
+  m.innerHTML=`<div class="cardsbox"><div class="kick" style="color:var(--water)">ŞƏFFAFLIQ</div><h2 style="font-size:22px">Elm və fərziyyələr</h2>
+    <p class="fine" style="font-size:13px">Simulyasiyadakı hər rəqəm üç növdən biridir. Dəyərlər birbaşa oyun mühərrikindən oxunur — burada gördüyün, fizikanın işlətdiyidir.</p>
+    <table><tbody>${grp('fact')}${grp('est')}${grp('game')}</tbody></table>
+    <p class="fine" style="margin-top:8px">${kindBadge('fact')} — ölçülmüş və ya dərc olunmuş, mənbədə yoxlanıla bilər. ${kindBadge('est')} — ədəbiyyata əsaslanan mühəndis təxmini və ya sadələşdirilmiş fiziki model. ${kindBadge('game')} — oynanılabilirlik üçün seçilmiş dəyər, elmi iddia deyil.</p>
+    <div style="margin-top:10px;text-align:right"><button class="btn" id="sciX">Bağla</button></div></div>`;
+  m.hidden=false; $('sciX').onclick=()=>{ m.hidden=true; }; m.onclick=e=>{ if(e.target===m) m.hidden=true; };
+}
+document.querySelectorAll('[data-sci]').forEach(b=>b.onclick=openSciPanel);
+function scienceNote(title,sci){
+  if(!sci) return Promise.resolve();
+  return new Promise(res=>{ const m=$('note');
+    m.innerHTML=`<div class="cardsbox"><div class="kick" style="color:var(--water)">ELMİ QEYD</div><h2 style="font-size:20px">${esc(title)}</h2><p style="font-size:15px;line-height:1.5;margin:6px 0">${esc(sci[0])}</p><div class="note-src">Mənbə: ${esc(sci[1])}</div><div style="margin-top:10px;text-align:right"><button class="btn" id="noteOk">Davam ▸</button></div></div>`;
+    m.hidden=false; const close=()=>{ m.hidden=true; res(); }; $('noteOk').onclick=close; if(AUTO) setTimeout(close,TEST?60:2600); });
+}
+const flow={
+  async begin(){ window.__STEP='begin'; if(AUTO&&G.record.length===0&&Object.keys(G.choices).length&&!TEST){} await this.agenda(); },
+  async solEnd(){ BLOCK=true; const r=step(G,'live'); // agenda artıq boşdur → fizika
+    if(r.pending){ await this.agenda(); return; }
+    if(r.over||G.over){ return endSequence(); }
+    await this.agenda(); },
+  async agenda(){
+    BLOCK=true;
+    if(!G.agenda) G.agenda=buildAgenda(G);
+    while(G.agenda.length){
+      const it=G.agenda[0], def=defOf(it), isQ=it.type==='quest';
+      let r=resolveOption(G,it,'live'), preset=null;
+      if(r && AUTO) preset=r.o.id;
+      if(!r || AUTO){
+        window.__STEP='banner';await banner(isQ?'YENİ GÖREV':'DİQQƏT!',def.title,def.goal);window.__STEP='pan';
+        if(SCN) await SCN.panTo(ZONES[def.zone]||ZONES.shelter);
+        if(isQ) for(const [who,line] of def.dialog) await say(who,line);
+        else await say(EV_SPEAKER[it.type]||'cmd',it.text);
+        window.__STEP='card';const pick=await chooseCard(it,def,preset);window.__STEP='picked';
+        G.choices[it.id]=pick; r=resolveOption(G,it,'live');
+      }
+      const s0={...G.s}, pre=forecast(G);
+      applyOption(G,it,r.o,r.fallback); G.agenda.shift();
+      const post=forecast(G), mat=forecast(G,true), rows=resultRows(s0,G.s,pre,post,mat);
+      if(SCN){ if(isQ) SCN.build(it.id,r.o.id); else SCN.react(it.type,r.o.id);
+        SCN.floatText(ZONES[def.zone]||ZONES.shelter, rows.filter(x=>x.float).slice(0,4)); }
+      if(!r.fallback||AUTO){ if(SCN&&isQ) await wait(TEST?50:1500);
+        await resultCard(def,r.o,it,rows,isQ?r.o.science:EVENT_SCI[it.type]); }
+    }
+    if(G.sol===0){ step(G,'live'); return this.agenda(); } // Sol 0: fizika yoxdur
+    if(SCN&&!SCN.following) SCN.follow();
+    BLOCK=false;
+  }
+};
+
+/* =================== QƏRARIN NƏTİCƏSİ =================== */
+// Proqnoz: oyunun surətində 1 Sol fizika işlədir (əsl oyuna toxunmur)
+function forecast(g,mature){
+  const c=cloneGame(g); c.fast=true; c.agenda=[]; c.queue=[]; c.counters={...g.counters};
+  if(mature&&c.s.foodSys){ c.s.planted=-999; c.s.health=g.s.health; }
+  physics(c); const s=c.s, d=s.det||{};
+  return {gen:s.gen,dem:s.dem,o2:s.o2Net,w:s.wNet,food:s.foodProd,co2:d.co2Rem||0,dose:s.dose-g.s.dose};
+}
+function resultRows(s0,s1,pre,post,mat){
+  const D=[ // ad, vahid, əvvəl, indi, tam güclə, artım yaxşıdır?, dəqiqlik
+    ['Büdcə','M $',s0.B,s1.B,null,1,0],
+    ['Enerji istehsalı','kWh/Sol',pre.gen,post.gen,mat.gen,1,0],
+    ['Enerji tələbatı','kWh/Sol',pre.dem,post.dem,mat.dem,0,0],
+    ['Enerji balansı','kWh/Sol',pre.gen-pre.dem,post.gen-post.dem,mat.gen-mat.dem,1,0],
+    ['O₂ balansı','kq/Sol',pre.o2,post.o2,mat.o2,1,1],
+    ['O₂ ehtiyatı','kq',s0.O2,s1.O2,null,1,1],
+    ['CO₂ udulması','kq/Sol',pre.co2,post.co2,mat.co2,1,1],
+    ['Su balansı','kq/Sol',pre.w,post.w,mat.w,1,1],
+    ['Qida məhsulu','kkal/Sol',pre.food,post.food,mat.food,1,0],
+    ['Qida ehtiyatı','Sol-luq',kcalSols(s0.food),kcalSols(s1.food),null,1,1],
+    ['Radiasiya','mSv/Sol',pre.dose,post.dose,null,0,2],
+    ['Cəmi doza','mSv',s0.dose,s1.dose,null,0,1],
+    ['Əhval','',s0.mood,s1.mood,null,1,0],
+    ['Ekoloji iz','/100',s0.eco,s1.eco,null,0,0],
+    ['Planet mühafizəsi','/100',s0.pp,s1.pp,null,1,0],
+    ['Təmir dəsti','',s0.kits,s1.kits,null,1,0],
+    ['Batareya tutumu','kWh',s0.cap,s1.cap,null,1,0]];
+  const out=[];
+  for(const [name,unit,a,b,m,upGood,dp] of D){
+    const eps=dp===2?0.005:0.05, d=b-a, dm=m!=null?m-a:0, matDiff=m!=null&&Math.abs(m-b)>Math.max(eps,Math.abs(b)*0.02);
+    if(Math.abs(d)<eps && !(m!=null&&Math.abs(dm)>eps)) continue;
+    const good=(d>0)===!!upGood, f=v=>fmt(v,dp);
+    out.push({name,unit,a:f(a),b:f(b),m:matDiff?f(m):null,d:(d>0?'+':'')+f(d),good:Math.abs(d)<eps?((dm>0)===!!upGood):good,
+      float:Math.abs(d)>=eps?`${name} ${(d>0?'+':'')}${f(d)}${unit&&unit[0]!=='/'?' '+unit:''}`:null});
+  }
+  return out;
+}
+function resultCard(def,o,it,rows,sci){
+  return new Promise(res=>{ const m=$('note'), hasM=rows.some(r=>r.m!=null);
+    m.innerHTML=`<div class="cardsbox" style="max-width:640px;--c:${GC[def.goal]}"><div class="kick" style="color:var(--c)">QƏRARIN NƏTİCƏSİ · SOL ${String(G.sol).padStart(3,'0')}</div>
+      <h2 style="font-size:21px">${esc(def.title)}: <span style="color:var(--ochre2)">${esc(o.label)}</span></h2>
+      ${rows.length?`<table class="res"><thead><tr><th>Göstərici</th><th>Əvvəl</th><th>İndi</th><th>Fərq</th>${hasM?'<th>Tam güclə</th>':''}</tr></thead><tbody>
+        ${rows.map(r=>`<tr><td>${esc(r.name)} <small>${esc(r.unit)}</small></td><td>${r.a}</td><td><b>${r.b}</b></td><td class="${r.good?'up':'dn'}">${r.d==='+0'||r.d==='0'||r.d==='−0'?'—':r.d}</td>${hasM?`<td>${r.m??''}</td>`:''}</tr>`).join('')}</tbody></table>`
+        :'<p class="fine">Dərhal ölçülə bilən dəyişiklik yoxdur — təsir sonra görünəcək.</p>'}
+      ${hasM?'<p class="fine">"Tam güclə" — bitkilər tam yetişəndə gözlənilən dəyərlər.</p>':''}
+      ${o.visible?`<p class="fine" style="margin:4px 0">Gözlənilən: ${esc(txt(o.visible,G))}${o.energy?' · ⚡ '+esc(txt(o.energy,G)):''}</p>`:''}
+      ${sci?`<div class="sci"><div class="kick" style="color:var(--water)">ELMİ QEYD${kindBadge(sciKind(it,o))}</div><p>${esc(sci[0])}</p><div class="note-src">Mənbə: ${esc(sci[1])}</div></div>`:''}
+      <div style="margin-top:10px;text-align:right"><button class="btn" id="noteOk">Davam ▸</button></div></div>`;
+    m.hidden=false; const close=()=>{ m.hidden=true; res(); }; $('noteOk').onclick=close; if(AUTO) setTimeout(close,TEST?60:3200); });
+}
+
+/* =================== OBYEKT MƏLUMAT PANELİ (klik) =================== */
+let INFO=null;
+const SYS_OF=k=>k==='hab'||k==='habcave'||k==='hull'||k==='tools'?'hab':/^panel/.test(k)||k==='batt'?'energy':k==='reactor'?'energy':k==='o2'?'o2':k==='co2'?'co2':k==='wsrc'?'water':k==='recyc'?'recycle':k==='farm'||k==='soil'||k==='plant'||k==='bar0'?'farm':k==='brine'?'brine':/^crate/.test(k)||k==='lander'?'stores':null;
+function openInfo(sys,extra){ INFO={sys,extra}; renderInfo(); }
+function closeInfo(){ INFO=null; $('info').hidden=true; }
+const kv=rows=>`<div class="kv">${rows.filter(Boolean).map(([k,v,cls])=>`<span>${esc(k)}</span><b class="${cls||''}">${v}</b>`).join('')}</div>`;
+const pc=v=>Math.round(v*100)+'%';
+function evList(goals){ const L=G.log.filter(e=>e.kind!=='info'&&e.kind!=='decision'&&e.sig&&goals.includes(e.goal)).slice(-6).reverse();
+  return L.length?`<ul class="chain">${L.map(e=>`<li>Sol ${e.sol}: ${esc(e.text)}</li>`).join('')}</ul>`:'<p class="fine">Hələ hadisə olmayıb.</p>'; }
+function recOf(id){ return G.record.find(r=>r.id===id); }
+function sciOf(id){ const r=recOf(id); return r&&r.science?`<div class="sci"><div class="kick" style="color:var(--water)">ELMİ ƏSAS${kindBadge(r.sciKind)}</div><p>${esc(r.science[0])}</p><div class="note-src">${esc(r.science[1])}</div></div>`:''; }
+function hchart(series,yMax){ return lineChart({h:130,yMax,series}); }
+const INFOS={
+ farm(){ const s=G.s,d=s.det||{}; if(!s.foodSys) return null; const c=TUNE.crops[s.foodSys], sol=G.sol;
+   const NM={led:'LED-li hidroponika',gh:'Təbii işıqlı istixana',spir:'Spirulina fotobioreaktoru'}, SN={regolith:'Yuyulmuş regolit',hydro:'Hidroponik məhlul',compost:'Kompost','':'Başlanğıc qida dəsti'};
+   const delay=s.foodSys==='spir'?TUNE.crops.spirDelay:TUNE.crops.delay, ramp=s.foodSys==='spir'?TUNE.crops.spirRamp:TUNE.crops.ramp, gr=d.gr||0, inSt=stormIndex(G.env,sol)>=0;
+   const firstSol=s.planted+delay+1, fullSol=s.planted+delay+ramp; // gr>0 ilk dəfə planted+delay+1-də
+   let st=['ok','İşləyir']; if(sol<firstSol) st=['idle',`Cücərir — məhsul Sol ${firstSol}-də başlayır`]; else if(gr<1) st=['idle',`Böyüyür (${pc(gr)})`];
+   if(s.health<1) st=['bad',`Xəstə — sağlamlıq ${pc(s.health)}`]; if(s.f_food<0.65&&s.foodSys) st=['bad',`Enerji çatmır (${pc(s.f_food)})`]; if(inSt&&s.foodSys==='gh') st=['warn',`Fırtına: işıq ${pc(d.light||0)}`];
+   const prioPos=(d.order||[]).indexOf('food')+2, risk=s.foodSys!=='spir'?TUNE.risk.disease*(s.foodSys==='led'?TUNE.risk.diseaseLED:1)*(s.soil==='hydro'?TUNE.risk.diseaseHydro:1):0;
+   return {title:NM[s.foodSys],goal:'food',status:st,body:
+    kv([['Sahə',c.area+' m²'],['Əkilib',`Sol ${Math.max(0,s.planted)}`],['Tam yetişmə',`Sol ${fullSol}`],['Böyümə',pc(gr)],['Bitki sağlamlığı',pc(s.health),s.health<1?'w':''],
+        ['Torpaq / qida mühiti',SN[s.soil||'']],['Torpaq əmsalı','×'+(d.soilF||1).toFixed(2)],s.foodSys==='gh'?['Günəş işığı (toz)',pc(d.light||0),d.light<0.6?'w':'']:null,
+        ['Məhsul',`${fmt(s.foodProd)} kkal/Sol`],['Ekipaj ehtiyacı',`${CREW_KCAL()} kkal/Sol`],['Ehtiyacın ödənməsi',pc(s.foodProd/CREW_KCAL()),s.foodProd<0.65*CREW_KCAL()?'w':''],
+        ['Enerji tələbatı',`${fmt(d.dF||0)} kWh/Sol${d.shed?' (söndürülüb 40%)':''}`],['Aldığı enerji',pc(s.f_food),s.f_food<0.65?'w':''],['Enerji prioriteti',`${prioPos}-ci yer (sonuncu = 4)`],
+        ['Su sərfi',`${fmt((d.cropWater||0)+(d.washWater||0),1)} kq/Sol${d.washWater?' (perxlorat yuyulması daxil)':''}`],['O₂ verir',`${fmt(d.plantO2||0,2)} kq/Sol`],['CO₂ udur',`${fmt(d.plantCO2||0,2)} kq/Sol`],
+        risk?['Xəstəlik riski',`${(risk*100).toFixed(1)}% / Sol`]:null,['Qida ehtiyatı',`${fmt(kcalSols(s.food),1)} Sol-luq`]])
+    +`<h5>Məhsul (kkal/Sol) və ehtiyac</h5>`+hchart([{color:GC.food,data:G.history.map(e=>[e.sol,e.foodProd])},{color:'#ea5a42',dash:true,w:1,data:[[0,CREW_KCAL()],[100,CREW_KCAL()]]}],CREW_KCAL()*1.25)
+    +`<h5>Hadisələr</h5>${evList(['food'])}`+sciOf('G3.2')+sciOf('G3.3')}; },
+ energy(){ const s=G.s,d=s.det||{}, sol=G.sol, ord=['life',...(d.order||['o2','water','food'])], NM={life:'Həyat təminatı',o2:'Oksigen',water:'Su',food:'Qida'}, F={life:s.f_life,o2:s.f_o2,water:s.f_water,food:s.f_food}, DD={life:d.dLife,o2:d.dO2,water:d.dW,food:d.dF};
+   const PN={cheap:'Yüngül',std:'Standart',hard:'Gücləndirilmiş'};
+   return {title:'Enerji sistemi',goal:'energy',status:s.gen>=s.dem?['ok','Balans müsbət']:['warn',`Çatışmazlıq ${fmt(s.dem-s.gen)} kWh`],body:
+    kv([['Panel tipi',PN[s.panel]+` (k=${s.k})`],['Panel sahəsi',s.panelArea+' m²'],['Panel sağlamlığı',pc(s.solarHealth),s.solarHealth<0.9?'w':''],['τ (toz)',(d.tau||0).toFixed(2)],['Toz əmsalı',pc(d.dustF||1)],
+        ['Günəş istehsalı',fmt(d.solar||0)+' kWh/Sol'],s.reactor?['Reaktor (kabel itkisi ilə)',fmt(d.reactorGen)+' kWh/Sol']:null,['Cəmi tələbat',fmt(s.dem)+' kWh/Sol'],['Batareya',`${fmt(s.E)} / ${s.cap} kWh`]])
+    +`<h5>Paylanma (prioritet sırası ilə)</h5>`+kv(ord.map((k,i)=>[`${i+1}. ${NM[k]}`,`${fmt(DD[k]||0)} kWh · ${pc(F[k])}`,F[k]<0.65?'w':'']))
+    +`<h5>İstehsal və tələbat</h5>`+hchart([{color:GC.energy,data:G.history.map(e=>[e.sol,e.gen])},{color:'#ea5a42',dash:true,data:G.history.map(e=>[e.sol,e.dem])}])
+    +`<h5>Hadisələr</h5>${evList(['energy'])}`+sciOf('GE1')+sciOf('GE2')}; },
+ o2(){ const s=G.s,d=s.det||{}, sol=G.sol; if(!s.o2src) return null; const NM={moxie:'MOXIE CO₂ elektrolizi',electro:'Su elektrolizi',lox:'Maye oksigen ehtiyatı'};
+   const down=s.o2src==='moxie'&&sol<s.moxieDown, risk=TUNE.risk.moxieBase+TUNE.risk.moxieCycle*s.cycles;
+   return {title:NM[s.o2src],goal:'air',status:down?['bad',`Təmirdə (${s.moxieDown-sol} Sol)`]:s.o2src!=='lox'&&s.f_o2<0.9?['warn',`Enerji ${pc(s.f_o2)}`]:['ok','İşləyir'],body:
+    kv([['İstehsal',fmt(d.o2Prod||0,2)+' kq O₂/Sol'],['Bitkilərdən',fmt(d.plantO2||0,2)+' kq/Sol'],['Ekipaj istehlakı',fmt(d.o2Use||0,2)+' kq/Sol'],['Balans',fmt(s.o2Net,2)+' kq/Sol',s.o2Net<0?'w':''],['Ehtiyat',fmt(s.O2,1)+' kq'],
+        ['Enerji tələbatı',fmt(d.dO2||0)+' kWh/Sol'],['Aldığı enerji',pc(s.f_o2),s.f_o2<0.9?'w':''],
+        s.o2src==='moxie'?['Soyuma-qızma dövrləri',s.cycles,s.cycles>3?'w':'']:null,s.o2src==='moxie'?['Qəza riski',(risk*100).toFixed(1)+'% / Sol',risk>0.03?'w':'']:null,
+        s.o2src==='electro'?['Su sərfi',fmt(d.wElec||0,1)+' kq/Sol','w']:null])
+    +`<h5>O₂ ehtiyatı (kq)</h5>`+hchart([{color:GC.air,data:G.history.map(e=>[e.sol,e.O2])}])+`<h5>Hadisələr</h5>${evList(['air'])}`+sciOf('G1.1')}; },
+ co2(){ const s=G.s,d=s.det||{}; if(!s.co2sys) return null; const NM={amine:'Amin/seolit süzgəcləri',lioh:'LiOH patronları',bio:'Bioregenerasiya'};
+   return {title:NM[s.co2sys],goal:'air',status:s.co2pct>1?['bad','CO₂ təhlükəli']:s.co2pct>0.5?['warn','CO₂ yüksək']:['ok','Normal'],body:
+    kv([['Kabində CO₂',s.co2pct.toFixed(2)+'%',s.co2pct>0.5?'w':''],['Ekipaj ifrazı',fmt(d.co2In||0,1)+' kq/Sol'],['Udulan (cəmi)',fmt(d.co2Rem||0,1)+' kq/Sol'],['Bitkilər udur',fmt(d.plantCO2||0,2)+' kq/Sol'],
+        ['LiOH qalığı',fmt(s.lioh)+' kq'],s.co2sys==='amine'?['Enerji',`${TUNE.amine.kwh} kWh · ${pc(s.f_life)}`]:null])
+    +`<h5>Kabin CO₂ (%)</h5>`+hchart([{color:'#ea5a42',data:G.history.map(e=>[e.sol,e.co2])}],Math.max(1,...G.history.map(e=>e.co2)))+`<h5>Hadisələr</h5>${evList(['air'])}`+sciOf('G1.2')}; },
+ water(){ const s=G.s,d=s.det||{}, sol=G.sol; if(!s.waterSrc) return null; const NM={ice:'Buz qazma qurğusu',minerals:'Hidratlı mineral emalı',wavar:'WAVAR rütubət tutucu'};
+   const down=s.waterSrc==='ice'&&sol<s.drillDown, risk=s.f_water<TUNE.risk.drillF?TUNE.risk.drillLow:TUNE.risk.drill;
+   return {title:NM[s.waterSrc],goal:'water',status:down?['bad',`Donub / təmirdə (${s.drillDown-sol} Sol)`]:s.f_water<0.65?['warn',`Enerji ${pc(s.f_water)}`]:['ok','İşləyir'],body:
+    kv([['Hasilat',fmt(d.wProd||0,1)+' kq/Sol'],['Təkrar emaldan',fmt(d.recovered||0,1)+' kq/Sol'],['Ekipaj istifadəsi',fmt(d.use||0)+' kq/Sol'],['Bitki + yuyulma',fmt((d.cropWater||0)+(d.washWater||0),1)+' kq/Sol'],
+        d.wElec?['Elektroliz',fmt(d.wElec,1)+' kq/Sol','w']:null,['Balans',fmt(s.wNet,1)+' kq/Sol',s.wNet<0?'w':''],['Ehtiyat',fmt(s.W)+' kq'],['Enerji tələbatı',fmt(d.dW||0)+' kWh/Sol'],['Aldığı enerji',pc(s.f_water),s.f_water<0.65?'w':''],
+        s.waterSrc==='ice'?['Donma riski',(risk*100).toFixed(1)+'% / Sol',risk>0.1?'w':'']:null,s.brine?['Duzlu su',`+${TUNE.brine.kg} kq/Sol`]:null])
+    +`<h5>Su ehtiyatı (kq)</h5>`+hchart([{color:GC.water,data:G.history.map(e=>[e.sol,e.W])}])+`<h5>Hadisələr</h5>${evList(['water'])}`+sciOf('G2.1')}; },
+ recycle(){ const s=G.s,d=s.det||{}; const NM={base:'Bazis sistem',iss:'ISS səviyyəli (98%)',simple:'Sadə (85%)',bio:'Bioloji filtrlər'};
+   return {title:'Su təkrar emalı: '+NM[s.recycle],goal:'water',status:['ok','İşləyir'],body:kv([['Bərpa faizi',pc(d.recycleR||0)],['Bərpa olunan',fmt(d.recovered||0,1)+' kq/Sol'],['İtki',fmt((d.use||0)-(d.recovered||0),1)+' kq/Sol'],['Enerji',TUNE.recycle[s.recycle].kwh+' kWh/Sol']])+sciOf('G2.2')}; },
+ hab(){ const s=G.s,d=s.det||{}; const NM={inflate:'Şişirilən səth modulu',regolith:'Regolitlə örtülmüş modul',lava:'Lava tuneli'};
+   const rate=TUNE.radRate[s.shelter], leak=TUNE.risk.leak[s.shelter]*(s.hull?TUNE.risk.hullF:1);
+   return {title:NM[s.shelter],goal:'all',status:s.f_life<0.8?['bad','İstilik çatmır']:s.co2pct>0.5?['warn','CO₂ yüksək']:['ok','Normal'],body:
+    kv([['Radiasiya',rate+' mSv/Sol'],['Cəmi doza',fmt(s.dose,1)+' mSv',s.dose>100?'w':''],['İstilik + həyat təminatı',fmt(d.dLife||0)+' kWh/Sol'],['Aldığı enerji',pc(s.f_life),s.f_life<0.8?'w':''],
+        ['Kabin CO₂',s.co2pct.toFixed(2)+'%'],['Sızma riski',(leak*100).toFixed(1)+'% / Sol'],['İkiqat qabıq',s.hull?'var':'yox'],['Təmir dəsti',s.kits],['Ekipaj əhvalı',fmt(s.mood),s.mood<30?'w':'']])
+    +`<h5>Cəmi doza (mSv)</h5>`+hchart([{color:'#d99a86',data:G.history.map(e=>[e.sol,e.dose])}])+`<h5>Hadisələr</h5>${evList(['all','air'])}`+sciOf('G0')}; },
+ brine(){ const r=recOf('G2.3'); return r?{title:'Duzlu buz mağarası',goal:'water',status:['idle',r.label],body:kv([['Planet mühafizəsi',fmt(G.s.pp)+'/100'],['Ekoloji iz',fmt(G.s.eco)+'/100'],['Su',G.s.brine?`+${TUNE.brine.kg} kq/Sol`:'—']])+sciOf('G2.3')}:null; },
+ stores(){ const s=G.s; return {title:'Eniş aparatı və ehtiyatlar',goal:'food',status:['idle','Anbar'],body:kv([['Qida paketləri',fmt(kcalSols(s.food),1)+' Sol-luq'],['Qida',fmt(s.food)+' kkal'],['O₂ ehtiyatı',fmt(s.O2,1)+' kq'],['Su',fmt(s.W)+' kq'],['Təmir dəsti',s.kits]])+sciOf('G3.1')}; },
+ crew(id){ const c=SCN&&SCN.crewOf(id); if(!c) return null; const st={idle:'Boşdur',walk:'Yolda',work:'İşləyir',sleep:'Yatır'}[c.state]||c.state;
+   return {title:crewName(id)+' — '+c.def.role,goal:'all',status:['ok',st],body:`<img src="${portrait(id)}" style="width:72px;image-rendering:pixelated;border:2px solid var(--line2)">`+kv([['Vəzifə',c.def.role],['Hazırkı iş',c.task?'Tapşırıq':'—'],['Ekipaj əhvalı',fmt(G.s.mood)],['Cəmi doza',fmt(G.s.dose,1)+' mSv']])}; }
+};
+function renderInfo(){
+  if(!INFO||!G) return; const fn=INFOS[INFO.sys]; const r=fn&&fn(INFO.extra); const el=$('info');
+  if(!r){ el.hidden=true; return; }
+  el.style.setProperty('--c',GC[r.goal]); el.hidden=false;
+  el.innerHTML=`<div class="ih"><div><div class="kick" style="color:var(--c)">${GOALS[r.goal].name} · SOL ${String(Math.min(100,G.sol)).padStart(3,'0')}</div><h3>${esc(r.title)}</h3></div><button id="infoX" aria-label="Bağla">✕</button></div>
+    <div class="ist ${r.status[0]}">${esc(r.status[1])}</div>${r.body}`;
+  $('infoX').onclick=closeInfo;
+}
+
+/* =================== FİNAL =================== */
+async function endSequence(){
+  ENDED=true; BLOCK=true; const o=G.outcome;
+  if(SCN){ const cam=SCN.cameras.main; cam.stopFollow(); cam.scrollX=0; SCN.tweens.add({targets:cam,scrollX:WORLD_W-1280,duration:TEST?200:9000,ease:'Sine.easeInOut'}); }
+  const gs=o.goals, nm=CREW[0].name;
+  const lines={thrive:`Sol ${o.sol}. Komandirin jurnalı, son yazı. Hava, su, qida — üçü də artıq bizimdir. ${G.s.foodSys==='spir'?'Spirulina reaktoru hər gün yaşıl zülal verir.':'Bu səhər Aysel ilk kartofu yığdı.'} Yerə deyin: Jezero evdir.`,
+    critical:`Sol ${o.sol}. Komandirin jurnalı. Sağ qaldıq — amma hələ də Yerin göndərdiyindən asılıyıq. ${gs.air!=='self'?'Hava ':''}${gs.water!=='self'?'Su ':''}${gs.food!=='self'?'Qida ':''}— növbəti ekipaj bunu həll etməlidir.`,
+    fail:`Sol ${o.sol}. Komandirin jurnalı, son yazı. ${o.reason}. Qayıdış aparatına minirik. Bazanın işıqları bizdən sonra da yanacaq — bir müddət.`}[o.key];
+  $('cine').hidden=false; $('cineWho').textContent='KOMANDİR '+nm.toUpperCase(); const el=$('cineTxt'); el.textContent='';
+  for(let i=0;i<=lines.length;i+=2){ el.textContent=lines.slice(0,i); await wait(TEST?0:28); }
+  await wait(TEST?100:2500); $('cine').hidden=true;
+  showEnd();
+}
+function lineChart(o){
+  const W=600,H=o.h||170,pl=44,pr=8,pt=8,pb=20,x1=W-pr,y1=H-pb, yMax=o.yMax||Math.max(1,...o.series.flatMap(s=>s.data.map(p=>p[1])))*1.05;
+  const X=v=>pl+(x1-pl)*v/100, Y=v=>y1-(y1-pt)*Math.max(0,Math.min(v,yMax))/yMax;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">`;
+  for(const st of G.env.storms) s+=`<rect x="${X(st.start)}" y="${pt}" width="${X(st.dur)-X(0)}" height="${y1-pt}" fill="#e8902f" opacity=".1"/>`;
+  for(let i=0;i<=4;i++){ const v=yMax*i/4; s+=`<line x1="${pl}" x2="${x1}" y1="${Y(v)}" y2="${Y(v)}" stroke="#55331f" ${i?'stroke-dasharray="2 4"':''}/><text x="${pl-4}" y="${Y(v)+3}" fill="#94785a" font-size="10" text-anchor="end" font-family="Pixelify Sans">${v>=10000?Math.round(v/1000)+'k':Math.round(v)}</text>`; }
+  for(let v=0;v<=100;v+=20) s+=`<text x="${X(v)}" y="${H-5}" fill="#94785a" font-size="10" text-anchor="middle" font-family="Pixelify Sans">${v}</text>`;
+  if(o.vline!=null) s+=`<line x1="${X(o.vline)}" x2="${X(o.vline)}" y1="${pt}" y2="${y1}" stroke="#efdcb8" stroke-dasharray="4 3"/>`;
+  if(o.cursor!=null) s+=`<line x1="${X(o.cursor)}" x2="${X(o.cursor)}" y1="${pt}" y2="${y1}" stroke="#e8902f" stroke-width="2" opacity=".7"/>`;
+  for(const se of o.series){ if(!se.data.length) continue; s+=`<path d="${se.data.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join('')}" fill="none" stroke="${se.color}" stroke-width="${se.w||2}" ${se.dash?'stroke-dasharray="5 4"':''}/>`; }
+  return s+'</svg>';
+}
+const STN={self:'Özünütəminetmə',dep:'Asılı',crisis:'Böhran'};
+let WI=null, OPT=null;
+function showEnd(){
+  const o=G.outcome, sc=o.score, gs=o.goals, s=G.s, mine=simulate(G.seed,G.used);
+  WI={mine,branches:[],cur:-1,sel:null,cursor:100}; OPT=null;
+  // Bütövlük yoxlaması: oynadığın xətt yalnız seed + seçimlərdən təkrar qurulur və canlı oyunla Sol-Sol müqayisə olunur
+  const same=mine.history.length===G.history.length&&mine.history.every((h,i)=>JSON.stringify(h)===JSON.stringify(G.history[i]));
+  const bar=(name,v,max,c)=>`<span>${name}</span><span><i style="width:${v/max*100}%;background:${c}"></i></span><span>${v} / ${max}</span>`;
+  const hid=G.record.filter(r=>r.type==='quest').map(r=>{ const later=G.log.filter(e=>e.sig&&e.sol>=r.sol&&(e.goal===r.goal||r.goal==='all'||r.goal==='energy')&&e.kind!=='info').slice(0,3);
+    const chain=later.length?`${esc(r.label)} seçdin → `+later.map(e=>`Sol ${e.sol}: ${esc(e.short)}`).join(' → '):'';
+    return `<li style="--c:${GC[r.goal]}"><b>Sol ${r.sol} · ${esc(r.title)}:</b> ${esc(r.label)}${r.hidden?`<div class="h">GİZLİ: ${esc(r.hidden)}</div>`:''}${r.science?`<div class="sci">Elm${kindBadge(r.sciKind)}: ${esc(r.science[0])} <i>(${esc(r.science[1])})</i></div>`:''}${chain?`<div class="ch">Zəncir: ${chain}</div>`:''}</li>`; }).join('');
+  $('endIn').innerHTML=`
+   <div class="endsec"><div class="fine" style="letter-spacing:.2em;font-family:var(--px)">MİSSİYA HESABATI · ${codeFromSeed(G.seed)} · SOL ${o.sol}</div>
+     <div class="verdict v-${o.key}">${esc(o.title)}</div><p style="color:var(--sand2);margin:0 0 10px">${esc(o.text)}</p>
+     <div class="g3">${['air','water','food'].map(k=>`<div style="--c:${GC[k]}"><span class="fine">${GOALS[k].name}</span><br><b class="st-${gs[k]}">${STN[gs[k]]}</b></div>`).join('')}</div></div>
+   <div class="endsec"><h3>EFFEKTİVLİK BALI: <span style="color:var(--ochre2);font-size:26px">${sc.total}</span> / 100</h3><div class="bars">
+     ${bar('Hava',sc.air,20,GC.air)}${bar('Su',sc.water,20,GC.water)}${bar('Qida',sc.food,20,GC.food)}${bar('Ekipaj sağlamlığı',sc.health,15,'#d99a86')}${bar('Ekoloji məsuliyyət',sc.ecology,15,'#8fd068')}${bar('Büdcə / gələcək',sc.budget,10,GC.energy)}</div>
+     <p class="fine" style="margin-top:8px">Doza: ${fmt(s.dose,1)} mSv (NASA karyera limiti ≈600 mSv) · Əhval ${fmt(s.mood)} · Ekoloji iz ${fmt(s.eco)} · Planet mühafizəsi ${fmt(s.pp)} · Qalan büdcə ${fmt(s.B)}M $</p></div>
+   <div class="endsec"><h3>100 SOL — HAVA · SU · QİDA</h3><div class="charts">
+     <div style="--c:${GC.air}"><h5>O₂ (kq)</h5>${lineChart({series:[{color:GC.air,data:G.history.map(e=>[e.sol,e.O2])}]})}</div>
+     <div style="--c:${GC.water}"><h5>Su (kq)</h5>${lineChart({series:[{color:GC.water,data:G.history.map(e=>[e.sol,e.W])}]})}</div>
+     <div style="--c:${GC.food}"><h5>Qida (Sol-luq)</h5>${lineChart({series:[{color:GC.food,data:G.history.map(e=>[e.sol,kcalSols(e.food)])}]})}</div></div></div>
+   <div class="endsec"><h3>GİZLİ TƏSİRLƏR VƏ ELMİ İZAH</h3><ul class="hidlist">${hid}</ul></div>
+   <div class="endsec"><h3>WHAT IF? — BİR SEÇİMİ DƏYİŞ</h3><p class="fine">Eyni Mars, eyni fırtınalar və təsadüflər (eyni seed). Yalnız bir seçim fərqlidir — alternativ xətt Sol 0-dan tam yenidən simulyasiya olunur. Sənin orijinal xəttin heç vaxt dəyişdirilmir.</p>
+     <div class="integrity">${same?`✓ Orijinal xətt yoxlanıldı: seed + ${Object.keys(G.used).length} seçimdən təkrar qurulan simulyasiya canlı oyunla ${G.history.length} Sol boyu eynidir.`:'<span style="color:var(--red)">⚠ Təkrar simulyasiya canlı oyundan fərqlənir.</span>'}</div>
+     <div class="wi-pick" id="wiPick"></div><div id="wiOpts"></div><div id="wiRes"></div></div>
+   <div class="endsec"><h3>ƏN EFFEKTİV YOL</h3><p class="fine">Bütün görev kombinasiyaları (${QUESTS.length} görev) Web Worker-lərdə simulyasiya olunur; büdcəni aşan və uğursuz budaqlar erkən kəsilir. Hadisə reaksiyaları üçün sənin seçimlərin istifadə olunur.</p>
+     <button class="btn" id="optBtn">Hesabla ▸</button><div class="prog" id="optProg" hidden><i></i></div><div id="optRes"></div></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="eAgain">Eyni kodla yenidən</button><button class="btn ghost" id="eNew">Yeni missiya</button><button class="btn ghost" id="eSci">Elm və fərziyyələr</button></div>`;
+  $('eSci').onclick=openSciPanel;
+  closeInfo(); $('end').hidden=false; $('end').scrollTop=0; ['goals','qlog','follow','hud'].forEach(i=>$(i).hidden=true);
+  $('eAgain').onclick=()=>startMission(G.seed,{},false);
+  $('eNew').onclick=()=>{ $('end').hidden=true; $('title').hidden=false; window.GAME.scene.stop('Game'); window.GAME.scene.stop('UI'); window.GAME.scene.start('Title'); };
+  $('optBtn').onclick=runOptimizer;
+  $('wiPick').innerHTML=G.record.map((r,i)=>`<button data-i="${i}"><small>Sol ${r.sol} · ${esc(r.title)}</small>${esc(r.label)}</button>`).join('');
+  $('wiPick').querySelectorAll('button').forEach(b=>b.onclick=()=>{ WI.sel=+b.dataset.i; $('wiPick').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderWiOpts(); });
+  window.__END_OK=true;
+}
+function renderWiOpts(){
+  const r=G.record[WI.sel], def=r.type==='quest'?QUESTS.find(q=>q.id===r.id):EVENTS[r.type];
+  // Hər alternativi əvvəlcədən simulyasiya et: həmin anda tətbiq oluna bilərdimi? (büdcə, təmir dəsti)
+  const alts=def.options.filter(o=>o.id!==r.optId).map(o=>{ const ch={...G.used,[r.id]:o.id}, res=simulate(G.seed,ch), ok=res.used[r.id]===o.id;
+    const why=ok?'':(o.cost&&o.cost>r.bBefore+1e-9?`Bu anda büdcə çatmazdı: lazım ${o.cost}M $, var ${fmt(r.bBefore)}M $`:o.req?(o.reqText||'Şərt ödənmir'):'Bu anda mümkün deyildi');
+    return {o,ch,res,ok,why}; });
+  $('wiOpts').innerHTML=`<div class="cards">${alts.map(({o,ok,why})=>`<button class="card" data-o="${o.id}" ${ok?'':'disabled'}><span class="t">${esc(o.label)}</span><span class="row"><span class="cost">${o.cost?o.cost+'M $':'pulsuz'}</span></span><span class="vis">${esc(txt(o.visible,G))}</span>${why?`<span class="alt-why">${esc(why)}</span>`:''}</button>`).join('')}</div>`;
+  $('wiOpts').querySelectorAll('.card').forEach(b=>b.onclick=()=>{ const a=alts.find(x=>x.o.id===b.dataset.o); if(!a||!a.ok) return;
+    const br={alt:a.res,change:{r,label:a.o.label,optId:a.o.id},want:a.ch};
+    // eyni budaq artıq varsa, yenisini yaratma — orijinal və bütün budaqlar dəyişməz saxlanılır
+    let i=WI.branches.findIndex(x=>x.change.r.id===r.id&&x.change.optId===a.o.id); if(i<0){ WI.branches.push(br); i=WI.branches.length-1; }
+    WI.cur=i; WI.cursor=100; renderWi(); });
+}
+/* Alternativ xəttdə istənilən, amma tətbiq oluna bilməyən seçimlər (büdcə/dəst çatmadı) */
+function forcedList(br){ const f=br.alt.forced||{}, ids=Object.keys(f).filter(k=>k!==br.change.r.id&&br.want[k]!=null);
+  return ids.map(k=>f[k]).sort((a,b)=>a.sol-b.sol); }
+function divergence(a,b){ const n=Math.max(a.length,b.length); for(let i=0;i<n;i++){ const x=a[i],y=b[i]; if(!x||!y) return i; for(const k of ['O2','W','food','E','B','mood','dose']) if(Math.abs(x[k]-y[k])>1e-9) return x.sol; } return null; }
+function chainDiff(A,B){ const ev=L=>L.filter(e=>e.sig&&e.kind!=='info').map(e=>({sol:e.sol,type:e.sig.split('@')[0],sig:e.sig,short:e.short,used:false}));
+  const a=ev(A), b=ev(B), out=[], bm=new Map(b.map(e=>[e.sig,e])); a.forEach(e=>{ const m=bm.get(e.sig); if(m&&!m.used){ e.used=m.used=true; } });
+  for(const e of a){ if(e.used) continue; const m=b.filter(x=>!x.used&&x.type===e.type).sort((p,q)=>Math.abs(p.sol-e.sol)-Math.abs(q.sol-e.sol))[0];
+    if(m){ m.used=true; out.push({sol:Math.min(e.sol,m.sol),c:'m',t:`Sənin xəttində: Sol ${e.sol} — ${e.short}. Alternativdə: Sol ${m.sol}-də.`}); } else out.push({sol:e.sol,c:'m',t:`Sənin xəttində: Sol ${e.sol} — ${e.short}. Alternativdə: baş vermədi.`}); }
+  for(const m of b) if(!m.used) out.push({sol:m.sol,c:'a',t:`Sənin xəttində: baş vermədi. Alternativdə: Sol ${m.sol} — ${m.short}.`});
+  return out.sort((p,q)=>p.sol-q.sol); }
+function renderWi(){
+  const br=WI.branches[WI.cur], {mine}=WI, alt=br.alt, change=br.change, cur=WI.cursor, div=divergence(mine.history,alt.history), forced=forcedList(br);
+  const at=(h,sol)=>h[Math.min(h.length-1,sol)];
+  const col=(k,res,h)=>{ const e=at(h,cur), o=res.outcome; return `<div><div class="k">${k}</div><div class="verdict v-${o.key}" style="font-size:22px">${esc(o.title)}</div>
+     <div class="fine">Bal ${o.score.total} · ${['air','water','food'].map(g=>`${GOALS[g].name}: <span class="st-${o.goals[g]}">${STN[o.goals[g]]}</span>`).join(' · ')}</div>
+     <div class="kv"><span>Sol</span><b>${e.sol}${e.sol<cur?' (son)':''}</b><span>O₂</span><b>${fmt(e.O2,1)} kq</b><span>CO₂</span><b>${e.co2.toFixed(2)}%</b><span>Su</span><b>${fmt(e.W)} kq</b><span>Qida</span><b>${fmt(kcalSols(e.food),1)} Sol-luq</b>
+     <span>Enerji ist./tələb</span><b>${fmt(e.gen)} / ${fmt(e.dem)} kWh</b><span>Doza</span><b>${fmt(e.dose,1)} mSv</b><span>Əhval</span><b>${fmt(e.mood)}</b></div></div>`; };
+  const ch=(k,f,c)=>lineChart({vline:div,cursor:cur,series:[{color:c,data:mine.history.map(e=>[e.sol,f(e)])},{color:'#efdcb8',dash:true,w:1.6,data:alt.history.map(e=>[e.sol,f(e)])}]});
+  const chain=chainDiff(mine.log,alt.log).slice(0,16);
+  $('wiRes').innerHTML=`${WI.branches.length>1?`<div class="fine" style="margin-top:8px">Araşdırılmış budaqlar (hamısı saxlanılır, orijinal toxunulmazdır):</div><div class="branches">${WI.branches.map((b,i)=>`<button data-b="${i}" class="${i===WI.cur?'on':''}">Sol ${b.change.r.sol} · ${esc(b.change.r.title)} → ${esc(b.change.label)} · bal ${b.alt.outcome.score.total}</button>`).join('')}</div>`:''}
+    <div class="cause" style="border-left:3px solid var(--ochre);padding:6px 10px;background:#2e1a0c;margin:8px 0">Dəyişiklik: Sol ${change.r.sol} · ${esc(change.r.title)}: <b>${esc(change.r.label)}</b> → <b>${esc(change.label)}</b>${div!=null?` · fərq Sol ${div}-də başlayır`:''}</div>
+    ${forced.length?`<div class="forced"><b>Domino effekti:</b> alternativ xəttdə sonrakı seçimlərin bəziləri artıq mümkün olmadı və avtomatik dəyişdi:<br>${forced.map(f=>`Sol ${f.sol} · ${esc(f.title)}: istədiyin <b>${esc(f.wantLabel)}</b>${f.wantCost?` (${f.wantCost}M $, büdcə ${fmt(f.B)}M $)`:''} → <b>${esc(f.gotLabel)}</b>`).join('<br>')}</div>`:''}
+    <div class="split">${col('SƏNİN KOLONİYAN',mine,mine.history)}${col('ALTERNATİV',alt,alt.history)}</div>
+    <label class="fine" style="display:block;margin-top:8px">Sol sürgüsü: <b id="wiCur">${cur}</b><input type="range" min="0" max="100" value="${cur}" id="wiSlider"></label>
+    <div class="charts"><div style="--c:${GC.air}"><h5>HAVA · O₂ kq</h5>${ch('O2',e=>e.O2,GC.air)}</div><div style="--c:${GC.water}"><h5>SU · kq</h5>${ch('W',e=>e.W,GC.water)}</div><div style="--c:${GC.food}"><h5>QİDA · Sol-luq</h5>${ch('F',e=>kcalSols(e.food),GC.food)}</div></div>
+    <p class="fine">Düz xətt — sənin xəttin, qırıq xətt — alternativ. Narıncı zolaqlar — toz fırtınaları.</p>
+    <h3 class="fine" style="margin-top:10px;font-family:var(--px);letter-spacing:.12em">SƏBƏB ZƏNCİRİ</h3>
+    ${chain.length?`<ul class="chain">${chain.map(c=>`<li class="${c.c}">${esc(c.t)}</li>`).join('')}</ul>`:'<p class="fine">Hadisələr eyni qaydada baş verdi — fərq yalnız resurs balansındadır.</p>'}`;
+  $('wiSlider').oninput=e=>{ WI.cursor=+e.target.value; renderWi(); const s=$('wiSlider'); s.focus(); };
+  $('wiRes').querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{ WI.cur=+b.dataset.b; renderWi(); });
+}
+/* ---------- Optimizator: Web Worker-lər ---------- */
+function runOptimizer(){
+  const btn=$('optBtn'); btn.disabled=true; $('optProg').hidden=false; $('optRes').innerHTML='<p class="fine">Hesablanır…</p>';
+  const policy={}; for(const k in G.used) if(k.startsWith('R_')) policy[k]=G.used[k];
+  const src=$('engine').textContent+`\nonmessage=e=>{ const {seed,policy,prefixes}=e.data; const out=[]; let i=0;
+    for(const p of prefixes){ const r=optimize(seed,Object.assign({},policy,p),null); out.push(r); i++; postMessage({progress:1}); }
+    postMessage({done:out}); };`;
+  const url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));
+  const q0=QUESTS[0], q1=QUESTS[1], q2=QUESTS[2], prefixes=[]; // 27 başlanğıc budaq → nüvələr arasında bərabər yük
+  for(const a of q0.options) for(const b of q1.options) for(const c of q2.options) prefixes.push({[q0.id]:a.id,[q1.id]:b.id,[q2.id]:c.id});
+  const nW=Math.max(1,Math.min(prefixes.length,(navigator.hardwareConcurrency||4)-1)), buckets=Array.from({length:nW},()=>[]);
+  prefixes.forEach((p,i)=>buckets[i%nW].push(p));
+  let doneP=0, finished=0; const results=[], t0=performance.now();
+  buckets.forEach(b=>{ const w=new Worker(url); w.onmessage=e=>{ if(e.data.progress){ doneP++; $('optProg').firstElementChild.style.width=(doneP/prefixes.length*100)+'%'; }
+      if(e.data.done){ results.push(...e.data.done); w.terminate(); if(++finished===nW) showOpt(results,performance.now()-t0); } };
+    w.onerror=err=>{ $('optRes').innerHTML='<p class="fine">Worker xətası: '+esc(err.message)+'</p>'; };
+    w.postMessage({seed:G.seed,policy,prefixes:b}); });
+}
+function showOpt(results,ms){
+  const best={eff:null,eco:null,safe:null}; let leaves=0,fails=0;
+  for(const r of results){ leaves+=r.leaves; fails+=r.fails;
+    if(r.best.eff&&(!best.eff||r.best.eff.score.total>best.eff.score.total)) best.eff=r.best.eff;
+    if(r.best.eco&&(!best.eco||r.best.eco.v>best.eco.v)) best.eco=r.best.eco;
+    if(r.best.safe&&(!best.safe||r.best.safe.v>best.safe.v)) best.safe=r.best.safe; }
+  $('optProg').hidden=true; $('optBtn').disabled=false;
+  if(!best.eff){ $('optRes').innerHTML='<p class="fine">Bu kodla heç bir yol uğursuzluqdan qaça bilmədi.</p>'; return; }
+  const mineSc=G.outcome.score;
+  const cols=[['Sənin yolun',{used:G.used,score:mineSc,goals:G.outcome.goals,outcome:G.outcome.key,dose:G.s.dose}],['Ən effektiv',best.eff],['Ən ekoloji',best.eco],['Ən təhlükəsiz',best.safe]];
+  const lab=(q,id)=>{ const o=q.options.find(o=>o.id===id); return o?o.label:'—'; };
+  const rows=QUESTS.map(q=>`<tr><td><b>${esc(q.title)}</b><br><span class="fine">Sol ${q.sol}</span></td>${cols.map(([n,c],i)=>`<td class="${i&&c.used[q.id]!==G.used[q.id]?'diff':''}">${esc(lab(q,c.used[q.id]))}</td>`).join('')}</tr>`).join('');
+  const sr=(k,n)=>`<tr><td>${n}</td>${cols.map(([_,c])=>`<td>${c.score[k]}</td>`).join('')}</tr>`;
+  const why=c=>{ const u=c.used, p=[];
+    if(u.G0==='lava'||u.G0==='regolith') p.push('qalın qoruma radiasiyanı azaldır');
+    if(u.GE1==='hard') p.push('gücləndirilmiş panellər fırtınada buruğu və MOXIE-ni enerjisiz qoymur');
+    if(u.GE2==='reactor') p.push('reaktor fırtınadan asılı olmayan baza gücü verir');
+    if(u['G3.2']==='gh') p.push('təbii işıqlı istixana LED-in enerji yükünü götürmür');
+    if(u['G3.2']==='led') p.push('LED hidroponika fırtınadan asılı olmayan qida verir');
+    if(u['G1.1']==='moxie') p.push('MOXIE suyu oksigenə xərcləmir');
+    if(u['G2.3']!=='mine') p.push('duzlu buza toxunulmadı — planet mühafizəsi qorundu');
+    return p.slice(0,2).join('; ')+'.'; };
+  $('optRes').innerHTML=`<p class="fine">${leaves.toLocaleString('az')} yarpaq simulyasiya edildi (${fails.toLocaleString('az')} uğursuz) · ${(ms/1000).toFixed(1)} san.</p>
+   <div class="tablewrap"><table class="opt"><thead><tr><th>GÖREV</th>${cols.map(([n])=>`<th>${n}</th>`).join('')}</tr></thead><tbody>${rows}
+   ${sr('air','Hava (20)')}${sr('water','Su (20)')}${sr('food','Qida (20)')}${sr('health','Sağlamlıq (15)')}${sr('ecology','Ekologiya (15)')}${sr('budget','Büdcə (10)')}
+   <tr><td><b>CƏMİ</b></td>${cols.map(([_,c])=>`<td><b style="color:var(--ochre2);font-family:var(--px);font-size:16px">${c.score.total}</b></td>`).join('')}</tr>
+   <tr><td>Doza</td>${cols.map(([_,c])=>`<td>${fmt(c.dose,1)} mSv</td>`).join('')}</tr>
+   <tr><td></td><td></td>${cols.slice(1).map(([n],i)=>`<td><button class="btn" style="font-size:13px;padding:6px 10px" data-k="${['eff','eco','safe'][i]}">Bu yolu izlə ▸</button></td>`).join('')}</tr></tbody></table></div>
+   <ul class="chain">${cols.slice(1).map(([n,c])=>`<li><b>${n}:</b> ${esc(why(c))}</li>`).join('')}</ul>`;
+  $('optRes').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ const c=best[b.dataset.k]; setSpeed(3); startMission(G.seed,c.used,true); });
+}
+
+/* =================== BAŞLAT =================== */
+window.addEventListener('error',e=>{ (window.__ERR=window.__ERR||[]).push(e.message+' @'+e.lineno); });
+window.addEventListener('unhandledrejection',e=>{ (window.__ERR=window.__ERR||[]).push('rej: '+(e.reason&&e.reason.stack||e.reason)); });
+Promise.all([document.fonts.load('16px "Pixelify Sans"'),document.fonts.load('14px Inter')]).catch(()=>{}).finally(()=>{
+  window.GAME=new Phaser.Game({ type:Phaser.AUTO, parent:'phaser', width:1280, height:720, backgroundColor:'#160d08', pixelArt:true,
+    scale:{ mode:Phaser.Scale.FIT, autoCenter:Phaser.Scale.CENTER_BOTH }, scene:[BootScene,TitleScene,GameScene,UIScene] });
+});
+if(TEST){ setInterval(()=>{ document.title='T:'+(G?G.sol:'-')+':'+(window.__END_OK?'END':'')+':'+window.__STEP+':'+((window.__ERR||[]).join('|')); },200); }
+</script>
+</body>
+</html>
